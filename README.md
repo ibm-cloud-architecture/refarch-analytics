@@ -1,7 +1,7 @@
 # Analytics Reference Architecture
 This project provides a reference implementation for building and running analytics application deployed on hybrid cloud environment.
 
-![](analytics-ra.png)
+![](docs/analytics-ra.png)
 
 To get explanation of the components involved in this architecture see [Architecture Center - Analytics Architecture article](https://www.ibm.com/devops/method/content/architecture/dataAnalyticsArchitecture)
 
@@ -10,4 +10,4 @@ To get explanation of the components involved in this architecture see [Architec
 * [Compendium]()
 
 # Compendium
-* [Product public page](https://datascience.ibm.com/)
+* [Data Science Experience public page](https://datascience.ibm.com/)

@@ -1,9 +1,9 @@
 apiVersion: v1
 entries:
   spark:
-  - created: 2017-10-11T10:08:34.835749-04:00
+  - created: 2017-10-11T10:24:22.650544-04:00
     description: Fast and general-purpose cluster computing system.
-    digest: 417d85c7f93d5e734bb9bd02d095327266325db112ad1282fd7cb6cf9a2fa7b0
+    digest: ca33121e19439721d81cd5165f68bed914240b9ffc1d2ea8b5aa8419125927fb
     home: http://spark.apache.org
     icon: http://spark.apache.org/images/spark-logo-trademark.png
     maintainers:
@@ -16,4 +16,4 @@ entries:
     urls:
     - https://raw.githubusercontent.com/jkwong888/refarch-analytics/master/docs/charts/spark-0.1.4.tgz
     version: 0.1.4
-generated: 2017-10-11T10:08:34.83409-04:00
+generated: 2017-10-11T10:24:22.648223-04:00

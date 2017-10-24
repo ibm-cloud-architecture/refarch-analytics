@@ -7,6 +7,7 @@ As a quick summary: The notebook front end runs in web browser, the notebook ser
 For python the kernel is ipython. Here is a list of [available kernels](https://github.com/jupyter/jupyter/wiki/Jupyter-kernels)
 
 ## Notebooks
+* [Telco churn analysis](./TelcoChurn/README.md)
 
 ## Best practices on using jupyter notebooks
 Take into consideration where to start developing a notebook: locally or in DSX. You can start locally to draft your work and migrate to DSX as soon as you need to collaborate with other persons. When DSX local is deployed to a central cluster as IBM Cloud Private, you should start from DSX.

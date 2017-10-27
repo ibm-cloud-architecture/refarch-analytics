@@ -11,4 +11,4 @@ spec:
     - ReadWriteMany
   nfs:
     server: 172.16.50.250
-    path: /storage/vol15
+    path: /storage/user-home

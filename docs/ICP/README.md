@@ -1,36 +1,152 @@
-# Deploy Data Science to IBM Cloud Private
-There are two possible deployment
-* DSX developer which is the desktop version: web app for DSX
-* DSX local with all the worker nodes
+# Deploy Data Science Experience to IBM Cloud Private
 
-## Install DSX Developer
-ICP includes in its base helm repository a DSX dev chart as illustrated in figure below:
+There are two possible deployments:
+
+* DSX Developer Edition for a single user
+* DSX Local for collaboration and integration with external data sources
+
+## Install DSX Local
+
+### Prerequisites
+
+DSX Local is shipped as a bundle product.  Once ICP is installed, install the following tools on one of the master nodes:
+
+* [bx](https://console.bluemix.net/docs/cli/index.html) CLI
+* [ICP Plugin](https://www.ibm.com/support/knowledgecenter/SSBS6K_2.1.0/manage_cluster/install_cli.html) for bx CLI.  
+
+  The download can be retrieved from the master host using:
+  
+  ```bash
+  # wget --no-check-certificate https://<master-host>:8443/api/cli/icp-linux-amd64
+  ```
+  
+* [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) CLI
+* [helm](https://github.com/kubernetes/helm/releases/tag/v2.6.0) CLI v2.6.0
+
+### Load the Chart Bundle
+
+Add the self-signed certificates for the web UI to the system-wide trust store where the commands are run (i.e. the master host).  For Ubuntu 16.04, this can be done using the following commands, as root:
+
+```bash
+# mkdir -p /usr/local/share/ca-certificates/icp
+# cp /etc/cfc/conf/ca.crt /usr/local/share/ca-certificates/icp
+# cp /etc/cfc/conf/icp-auth.crt /usr/local/share/ca-certificates/icp
+# update-ca-certificates
+```
+
+Authenticate to the ICP cluster using the `bx pr` commands:
+
+```bash
+# bx pr login -a https://<master host>:8443
+# bx pr init
+```
+
+Log in to the docker private registry using the administrator credentials. For example if the cluster name is `mycluster.icp`:
+
+```bash
+# docker login mycluster.icp:8500
+```
+
+Retrieve the package and load it into the local helm and image repositories using this command.  This places the Helm chart for DSX Local into the `local-charts` repository, and all of the images into the Docker private registry running ICP.
+
+```bash
+# bx pr load-ppa-archive --archive ibm-dsx-local-linux-x86-icp-2.1.0.tar.gz
+```
+
+### Installing using the Helm CLI
+
+The DSX Local must be installed four times into four different namespaces, making an installation from the Catalog not very user friendly.  You may still look at the chart, called `ibm-dsx-prod`, in the Catalog to find out more information about the topology and installation instructions.  We will use the `helm` CLI to install it from the master node instead of the catalog.
+
+Set up the `kubectl` context before beginning.  This configures and authenticates the `kubectl` and `helm` with the ICP cluster. If the cluster is named `mycluster`,
+
+```bash
+# bx pr cluster-config mycluster
+```
+
+Set up the `default` service account in the `ibm-private-cloud` namespace that DSX uses so that the `spawner-api` service is able to create notebook pods dynamically in the `ibm-private-cloud` namespace:
+
+```bash
+# kubectl create rolebinding ibm-private-cloud-admin-binding --clusterrole=admin --user="system:serviceaccount:ibm-private-cloud:default" --namespace=ibm-private-cloud
+```
+
+Create each of the four namespaces that DSX Local requires:
+
+```bash
+# kubectl create namespace sysibmadm-data
+# kubectl create namespace sysibm-adm
+# kubectl create namespace ibm-private-cloud
+# kubectl create namespace dsxl-ml
+```
+
+If you do not have a dynamic storage provisioner, pre-create the PersistentVolumes.  If you have cloned this project, the files can be found in the [helm](../helm) directory.  Be sure to update the parameters in each of the PersistentVolume yamls to use the correct values for `<NFS Server>` and `<NFS PATH>`, and pre-create the directories for each of the PVs in the NFS server.
+
+```bash
+# kubectl create pv -f user-home-pv-1.yaml
+# kubectl create pv -f spark-metrics-pv-1.yaml
+# kubectl create pv -f cloudant-repo-pv.yaml
+# kubectl create pv -f redis-repo-pv.yaml
+```
+
+Retrieve the chart from the helm chart repository:
+
+```bash
+# wget https://mycluster.icp:8443/helm-repo/requiredAssets/ibm-dsx-prod-1.0.0.tgz 
+```
+
+Now, install the chart four times:
+
+```bash
+# helm install --namespace sysibmadm-data --name dsxns1  ibm-dsx-prod-1.0.0.tgz
+# helm install --namespace sysibm-adm --name dsxns2 ibm-dsx-prod-1.0.0.tgz
+# helm install --namespace dsxl-ml --name dsxns3 ibm-dsx-prod-1.0.0.tgz
+# helm install --namespace ibm-private-cloud --name dsxns4 ibm-dsx-prod-1.0.0.tgz
+```
+
+Note, if a dynamic storage provisioner is available, you can enable it using the following, and the `default` storage class will be used:
+
+```bash
+# helm install --namespace sysibmadm-data --name dsxns1  ibm-dsx-prod-1.0.0.tgz --set persistence.useDynamicProvisioning=true
+# helm install --namespace sysibm-adm --name dsxns2 ibm-dsx-prod-1.0.0.tgz --set persistence.useDynamicProvisioning=true
+# helm install --namespace dsxl-ml --name dsxns3 ibm-dsx-prod-1.0.0.tgz --set persistence.useDynamicProvisioning=true
+# helm install --namespace ibm-private-cloud --name dsxns4 ibm-dsx-prod-1.0.0.tgz --set persistence.useDynamicProvisioning=true
+```
+
+The Data Science Experience console will be available on https://<proxy-node-ip>:31843, using the default login/password of `admin`/`password`.
+
+## Install DSX Developer Edition
+
+### Installing using the Catalog
+
+ICP 2.1 also ships with a `ibm-dsx-dev` chart as illustrated in figure below:
+
 ![](dsx-dev-catalog.png)
 
-The DSX [developer edition](https://datascience.ibm.com/docs/content/desktop/welcome.html) is also know as DSX desktop and it includes:
-* Notebooks
-* R studio
+The DSX [developer edition](https://datascience.ibm.com/docs/content/desktop/welcome.html) is also known as DSX Desktop and is designed for users who want to learn more about the Data Science discipline. It includes:
+
+* [Jupyter Notebook](http://jupyter.org)
+* [Zeppelin](https://zeppelin.apache.org)
+* [R studio](https://www.rstudio.com)
 * Basic [Anaconda](https://www.anaconda.com/what-is-anaconda/) packages: numpy, pandas, jupyterm scipy, tensorflow...
 * CPLEX
 
-To install DSX on ICP, first create a namespace like **greencompute** using the ICP console, Admin > namespaces
+You can deploy DSX on ICP to a single namespace.  First create a namespace like **greencompute** using the ICP console, under Admin > namespaces
 
 ![](icp-green-ns.png)
 
-Then deploying DSX Developer requires a persistent volume to persist notebook, and other artifacts needed by data scientist.
-```
-PersistenceVolume (PV) is a piece of storage in the cluster that has been provisioned by an administrator. It is a resource in the cluster, and it is used store data after the life of the pod. We assume there is a NFS or gluster FS server available.
-```
+Deploying DSX Developer Edition requires a persistent volume (PV) to persist notebooks and other artifacts needed by data scientist.  A persistent volume is storage in the cluster that has been provisioned by an administrator. It is a resource in the cluster, and it is used store data after the life of the pod. We assume there is a NFS or Gluster FS server available.
+
 Going to Platform > Storage menu in ICP console, you can see the current persistent volumes.
+
 ![](icp-pvs.png)
 
  Create a new one named: dsx-pv, with 2Gi, access mode= read write many, Storage type as NFS.
  ![](dsx-pv.png)
-Add a label named assign-to with the value user-home
-Add parameters to specify the address of the NFS server, or DNS name, and the path used to mount the filesystem to the DSX docker image.
+ 
+Add a label named `assign-to` with the value `user-home`.  Add parameters to specify the address of the NFS server, or DNS name, and the path used to mount the filesystem to the DSX docker image.
+
  ![](dsx-pv2.png)
 
-As an alternate you could have create a yaml file to define the persistence volume (see the file ../../helm/dsx-pv.yaml) and use the command `kubectl create -f dsx-pv.yaml`
+As an alternative you can create a yaml file to define the persistent volume (see the [attached file](../../helm/dsx-pv.yaml)) and use the command `kubectl create -f dsx-pv.yaml`
 
 ```yaml
 apiVersion: v1
@@ -59,7 +175,8 @@ Change the persistence.useDynamicProvisioning to true
 
 Once completed go to the Helm release menu.
 
-## Using CLI
+### Using CLI
+
 So the most simple way is to use the following commands once connected to the cluster.
 
 ```

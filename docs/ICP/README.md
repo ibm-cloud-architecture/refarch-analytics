@@ -117,14 +117,6 @@ The Data Science Experience console will be available on https://&lt;proxy-node-
 
 ## Install DSX Developer Edition
 
-### Installing using the Catalog
-
-ICP 2.1 also ships with a `ibm-dsx-dev` chart as illustrated in figure below:
-
-=======
-# Deploy Data Science eXperience to IBM Cloud Private
-
-## Install DSX Developer
 ICP includes in its base helm catalog a Data Science eXperience Developer edition chart as illustrated in figure below:
 
 ![](dsx-dev-catalog.png)

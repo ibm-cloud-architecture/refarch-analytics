@@ -9,6 +9,7 @@ spec:
     storage: 2Gi
   accessModes:
     - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
   nfs:
     server: 172.16.50.250
-    path: /storage/user-home
+    path: /storage/vol10

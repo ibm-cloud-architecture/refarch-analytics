@@ -2,26 +2,30 @@
 
 There are two possible deployments to run DSX on ICP:
 
-* DSX developer which is the desktop version: web app for DSX, single user.
-* DSX local with all the worker nodes to support machine learning and collaboration on models.
+* [DSX developer](#install-dsx-developer-edition) which is the desktop version: web app for DSX, single user.
+* [DSX local](#install-dsx-local) with all the worker nodes to support machine learning and collaboration on models.
 
 A production deployment will use DSX local packaging as it will support collaboration between Data Scientists, business analysts and developers.
+Once installed validate the installation with at least a test for the following notebooks:
+* Learn basics about notebooks and Apache Spark: as it validate jupyter notebook, and spark kernels
+
 
 ## Install DSX Local
 
 ### Prerequisites
+DSX Local is shipped as a bundle product, and can be access via Passport Advantage.  ICP needs to be configured with enterprise edition with at least two master and two proxy nodes, 3 worker nodes. The configuration and capacity planning for the platform will be addressed in a separate notes, and it will depend of the type of workloads deployed to the cluster.
 
-DSX Local is shipped as a bundle product.  Once ICP is installed, install the following tools on one of the master nodes:
+Once ICP is installed, install the following tools on one of the master nodes:
 
 * [bx](https://console.bluemix.net/docs/cli/index.html) CLI
 * [ICP Plugin](https://www.ibm.com/support/knowledgecenter/SSBS6K_2.1.0/manage_cluster/install_cli.html) for bx CLI.  
 
   The download can be retrieved from the master host using:
-  
+
   ```bash
   # wget --no-check-certificate https://<master-host>:8443/api/cli/icp-linux-amd64
   ```
-  
+
 * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) CLI
 * [helm](https://github.com/kubernetes/helm/releases/tag/v2.6.0) CLI v2.6.0
 
@@ -49,17 +53,18 @@ Log in to the docker private registry using the administrator credentials. For e
 # docker login mycluster.icp:8500
 ```
 
-Retrieve the package and load it into the local helm and image repositories using this command.  This places the Helm chart for DSX Local into the `local-charts` repository, and all of the images into the Docker private registry running ICP.
+Retrieve the package and load it into the local helm and image repositories using this command.  
 
 ```bash
 # bx pr load-ppa-archive --archive ibm-dsx-local-linux-x86-icp-2.1.0.tar.gz
 ```
+This places the Helm chart for DSX Local into the `local-charts` repository, and all of the images into the Docker private registry running ICP.
 
 ### Installing using the Helm CLI
 
-The DSX Local must be installed four times into four different namespaces, making an installation from the Catalog not very user friendly.  You may still look at the chart, called `ibm-dsx-prod`, in the Catalog to find out more information about the topology and installation instructions.  We will use the `helm` CLI to install it from the master node instead of the catalog.
+As of now the DSX Local must be installed four times into four different namespaces, making an installation from the Catalog longer.  You may still look at the chart, called `ibm-dsx-prod`, in the Catalog to find out more information about the topology and installation instructions.  We will use the `helm` CLI to install it from the master node instead of the catalog.
 
-Set up the `kubectl` context before beginning.  This configures and authenticates the `kubectl` and `helm` with the ICP cluster. If the cluster is named `mycluster`,
+Set up the `kubectl` context before beginning (use the 'configuration client menu in ICP').  This configures and authenticates the `kubectl` and `helm` with the ICP cluster. If the cluster is named `mycluster`,
 
 ```bash
 # bx pr cluster-config mycluster
@@ -92,7 +97,7 @@ If you do not have a dynamic storage provisioner, pre-create the PersistentVolum
 Retrieve the chart from the helm chart repository:
 
 ```bash
-# wget https://mycluster.icp:8443/helm-repo/requiredAssets/ibm-dsx-prod-1.0.0.tgz 
+# wget https://mycluster.icp:8443/helm-repo/requiredAssets/ibm-dsx-prod-1.0.0.tgz
 ```
 
 Now, install the chart four times:
@@ -115,7 +120,7 @@ Note, if a dynamic storage provisioner is available, you can enable it using the
 
 The Data Science Experience console will be available on https://&lt;proxy-node-ip&gt;:31843, using the default login/password of `admin`/`password`.
 
-## Install DSX Developer Edition
+# Install DSX Developer Edition
 
 ICP includes in its base helm catalog a Data Science eXperience Developer edition chart as illustrated in figure below:
 
@@ -224,6 +229,6 @@ So the most simple way is to use the following commands once connected to the cl
 helm install --name dsx --namespace greencompute --set dsxservice.externalPort=32443 ibm-dsx-dev:v1.0.3
 ```
 
-## Confirming DSX is running
+### Confirming DSX is running
 To know DSX developer is finished deploying we can confirm a few things. Using the ICP admin console locate: *Workloads -> Deployments -> dsx-ux-server*.
 You should see one pod. Select the pod and then go to the *Events* menu

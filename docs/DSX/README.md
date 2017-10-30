@@ -4,7 +4,8 @@ The server used is https://169.46.44.164:31843/
 You can register or use one of e CASE userid as a set up a LDAP server connected to DSX.
 
 # Learn with Basic notebooks
-This should be your first notebook to test.
+This should be your first notebook to test. The project is named  > dsx-samples > Learn+basics+about+notebooks+and+Apache+Spark+Local.ipynb
+* Launching the notebooks
 
 # Compendium
 * [DSX home page](https://datascience.ibm.com/)

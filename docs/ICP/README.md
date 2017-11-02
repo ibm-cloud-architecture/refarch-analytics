@@ -9,8 +9,7 @@ A production deployment will use DSX local packaging as it will support collabor
 Once installed validate the installation with at least a test for the following notebooks:
 * Learn basics about notebooks and Apache Spark: as it validate jupyter notebook, and spark kernels
 
-
-## Install DSX Local
+## Install DSX Local on ICP
 
 ### Prerequisites
 DSX Local is shipped as a bundle product, and can be access via Passport Advantage.  ICP needs to be configured with enterprise edition with at least two master and two proxy nodes, 3 worker nodes. The configuration and capacity planning for the platform will be addressed in a separate notes, and it will depend of the type of workloads deployed to the cluster.
@@ -28,6 +27,10 @@ Once ICP is installed, install the following tools on one of the master nodes:
 
 * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) CLI
 * [helm](https://github.com/kubernetes/helm/releases/tag/v2.6.0) CLI v2.6.0
+
+### Storage considerations
+As of now NFS type of storage doesn't support dynamic storage provisioning.
+For dynamic storage it is recommend to use GlusterFS with three Nodes cluster outside of ICP. Each node will need have an extra raw disk attached to it.
 
 ### Load the Chart Bundle
 

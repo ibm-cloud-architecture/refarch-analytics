@@ -10,6 +10,7 @@ Once installed validate the installation with at least a test for the following 
 * Learn basics about notebooks and Apache Spark: as it validate jupyter notebook, and spark kernels
 
 ## Install DSX Local on ICP
+DSX Local includes a set of components working together and deployed as pods:
 
 ### Prerequisites
 DSX Local is shipped as a bundle product, and can be access via Passport Advantage.  ICP needs to be configured with enterprise edition with at least two master and two proxy nodes, 3 worker nodes. The configuration and capacity planning for the platform will be addressed in a separate notes, and it will depend of the type of workloads deployed to the cluster.

@@ -54,9 +54,28 @@ Once ICP is installed, install the following tools on one of the master nodes:
   ```bash
   # wget --no-check-certificate https://<master-host>:8443/api/cli/icp-linux-amd64
   ```
+  
+  Then added as a plugin to `bx` CLI using:
+  
+  ```bash
+  # bx plugin install ./icp-linux-amd64
+  ```
 
 * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) CLI
+  
+  The appropriate version can be downloaded using the following for ICP 2.1.0:
+  
+  ```bash
+  # docker run -e LICENSE=accept --net=host -v /usr/local/bin:/data ibmcom/kubernetes:v1.7.3-ee cp /kubectl /data
+  ```
+  
 * [helm](https://github.com/kubernetes/helm/releases/tag/v2.6.0) CLI v2.6.0
+
+  The appropriate version can be installed using the following for ICP 2.1.0:
+  
+  ```bash
+  docker run -t --entrypoint=/bin/cp -v /usr/local/bin:/data ibmcom/helm:v2.6.0  /helm /data/
+  ```
 
 ### Storage considerations
 As of now NFS type of storage doesn't support dynamic storage provisioning.

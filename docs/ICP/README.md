@@ -13,7 +13,36 @@ Once installed validate the installation with at least a test for the following 
 DSX Local includes a set of components working together and deployed as pods:
 
 ### Prerequisites
-DSX Local is shipped as a bundle product, and can be access via Passport Advantage.  ICP needs to be configured with enterprise edition with at least two master and two proxy nodes, 3 worker nodes. The configuration and capacity planning for the platform will be addressed in a separate notes, and it will depend of the type of workloads deployed to the cluster.
+DSX Local is shipped as a bundle product, and can be access via Passport Advantage.  ICP needs to be configured with enterprise edition with at least two master and two proxy nodes, and three worker nodes. The configuration and capacity planning for the platform will be addressed in a separate note, and it will depend of the type of workloads deployed to the cluster.
+
+#### Our configuration
+We would like to share our test configuration so you can plan accordingly. Here is our hardware allocation:
+
+![](green-icp.png)
+
+Some tricks for considerations:
+* All VM were set to run with static IP address. So do not forget to specify the dns-nameservers as part of the configuration of the **/etc/network/interfaces file**, as some installation need to resolve external name server.
+```
+iface ens160 inet static
+	address 172.16.40.135
+	netmask 255.255.0.0
+	broadcast 172.16.255.255
+	gateway 172.16.255.250
+	dns-nameservers 172.16.0.11 172.16.0.17
+	dns-search csplab.local
+```
+* the hosts file in the cluster folder needs to reflect the topology
+```
+```
+* All the hosts need to have the same /etc/hosts
+```
+172.16.40.130   green-icp-master.csplab.local green-icp-master
+172.16.40.131	green-icp-proxy.csplab.local green-icp-proxy
+172.16.40.132   green-icp-worker1.csplab.local green-icp-worker1
+172.16.40.133   green-icp-worker2.csplab.local green-icp-worker2
+172.16.40.134   green-icp-worker3.csplab.local green-icp-worker3
+172.16.40.135   green-management.csplab.local green-management
+```
 
 Once ICP is installed, install the following tools on one of the master nodes:
 
@@ -31,7 +60,7 @@ Once ICP is installed, install the following tools on one of the master nodes:
 
 ### Storage considerations
 As of now NFS type of storage doesn't support dynamic storage provisioning.
-For dynamic storage it is recommend to use GlusterFS with three Nodes cluster outside of ICP. Each node will need have an extra raw disk attached to it.
+For dynamic storage it is recommended to use [GlusterFS](https://www.gluster.org/) with two Nodes cluster outside of ICP. Each node will need have an extra raw disk attached to it.
 
 ### Load the Chart Bundle
 

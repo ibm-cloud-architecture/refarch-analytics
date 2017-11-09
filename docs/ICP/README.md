@@ -122,19 +122,19 @@ Set up the `kubectl` context before beginning (use the 'configuration client men
 # bx pr cluster-config mycluster
 ```
 
-Set up the `default` service account in the `ibm-private-cloud` namespace that DSX uses so that the `spawner-api` service is able to create notebook pods dynamically in the `ibm-private-cloud` namespace:
-
-```bash
-# kubectl create rolebinding ibm-private-cloud-admin-binding --clusterrole=admin --user="system:serviceaccount:ibm-private-cloud:default" --namespace=ibm-private-cloud
-```
-
 Create each of the four namespaces that DSX Local requires:
 
 ```bash
 # kubectl create namespace sysibmadm-data
 # kubectl create namespace sysibm-adm
-# kubectl create namespace ibm-private-cloud
 # kubectl create namespace dsxl-ml
+# kubectl create namespace ibm-private-cloud
+```
+
+Set up the `default` service account in the `ibm-private-cloud` namespace that DSX uses so that the `spawner-api` service is able to create notebook pods dynamically in the `ibm-private-cloud` namespace:
+
+```bash
+# kubectl create rolebinding ibm-private-cloud-admin-binding --clusterrole=admin --user="system:serviceaccount:ibm-private-cloud:default" --namespace=ibm-private-cloud
 ```
 
 If you do not have a dynamic storage provisioner, pre-create the PersistentVolumes.  If you have cloned this project, the files can be found in the [helm](../helm) directory.  Be sure to update the parameters in each of the PersistentVolume yamls to use the correct values for `<NFS Server>` and `<NFS PATH>`, and pre-create the directories for each of the PVs in the NFS server.

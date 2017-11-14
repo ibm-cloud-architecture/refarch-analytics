@@ -28,7 +28,10 @@ def afunction(p1, p2):
 * Use assertions to test code and validate results
 
 ### Local best practices
-* use virtual environment, and install jupyter notebook in those env.
+You can use virtual environment to do not impact you host/laptop environment. This is a problem on MACOS as python is used by the OS, so better to do not interfere too much on the default installation.
+An alternate is to use a docker image.
+
+#### use virtual environment, and install jupyter notebook in those env.
 ```
 virtualenv -p /Library/Frameworks/Python.framework/Versions/3.4/bin/python3.4 .venv
 # Activate environment
@@ -41,3 +44,5 @@ $ which jupyter
 ```
 pip freeze > requirememts.txt
 ```
+
+#### Use a docker image

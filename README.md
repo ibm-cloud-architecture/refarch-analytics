@@ -9,13 +9,15 @@ This project provides a reference implementation for building and running analyt
 To get explanation of the components involved in this architecture see [Architecture Center - Analytics Architecture article](https://www.ibm.com/devops/method/content/architecture/dataAnalyticsArchitecture)
 
 # Table of Contents
-* [Data Science](#data-sciences)
-* [Deploy Data Science eXperience to IBM Cloud Private](docs/ICP/README.md)
-* [Notebook samples](jupyter-notebooks/README.md)
+* [Data Sciences quick introduction](#data-sciences)
+* [Solution overview](#solution_overview)
+* [Build and Run](#build_and_run)
+* [DevOps](#devops)
+* [Service management](#service_management)
 * [Compendium](#compendium)
 * [Contribute](#contribute)
 
-# Data Sciences
+# Data Sciences Introduction
 Data science falls into these three categories:
 ## Descriptive analytics
 This is likely the most common type of analytics leveraged to create dashboards and reports. They describe and summarize events that have already occurred. For example, think of a grocery store owner who wants to know how items of each product were sold in all store within a region in the last five years.
@@ -24,6 +26,9 @@ This is all about using mathematical and statistical methods to forecast future 
 ## Prescriptive analytics
 Prescriptive analytics is used to optimize business decisions by simulating scenarios based on a set of constraints. The grocery store owner  wants to creating a staffing schedule for his employees, but to do so he will have to account for factors like availability, vacation time, number of hours of work, potential emergencies and so on (constraints) and create a schedule that works for everyone while ensuring that his business is able to function on a day to day basis.
 
+## Methodology
+Combining the development of analytics, machine learning and traditional software development involves adapting the agile iterative methodology. At IBM we are using the Design thinking and lean approach for developing innovative business applications. The garage method explains this approach. In [this article](./docs/methodology.md) we cover the specifics activities for analytics. 
+
 # Solution Overview
 The approach is to over the following capabilities:
 * Develop model with Data Science eXperience
@@ -31,6 +36,18 @@ The approach is to over the following capabilities:
 
 The system context may look like:  
 ![](docs/gr-syst-ctx.png)
+
+# Build and run
+* [Notebook samples](jupyter-notebooks/README.md)
+
+# DevOps
+## Continuous integration
+## Deployment
+* [Deploy Data Science eXperience to IBM Cloud Private](docs/ICP/README.md)
+
+## Continuous testing
+
+# Service management  
 
 # Compendium
 * [IBM Analytics reference architecture](https://www.ibm.com/cloud/garage/content/architecture/dataAnalyticsArchitecture/dataAnalyticsCustomerExperience)

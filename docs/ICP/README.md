@@ -12,6 +12,12 @@ Once installed validate the installation with at least a test for the following 
 ## Install DSX Local on ICP
 DSX Local includes a set of components working together and deployed as pods:
 
+![](dsx-local-icp.png)  
+
+There are multiple namespaces defined in the installation to manage the DSX local components. The notebook, zeppelin and R studio servers are running in a user scoped namespace for multitenancy support.
+
+The spark master control the job allocation to the spark workers.
+
 ### Prerequisites
 DSX Local is shipped as a bundle product, and can be access via Passport Advantage.  ICP needs to be configured with enterprise edition with at least two master and two proxy nodes, and three worker nodes. The configuration and capacity planning for the platform will be addressed in a separate note, and it will depend of the type of workloads deployed to the cluster.
 
@@ -54,25 +60,25 @@ Once ICP is installed, install the following tools on one of the master nodes:
   ```bash
   # wget --no-check-certificate https://<master-host>:8443/api/cli/icp-linux-amd64
   ```
-  
+
   Then added as a plugin to `bx` CLI using:
-  
+
   ```bash
   # bx plugin install ./icp-linux-amd64
   ```
 
 * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) CLI
-  
+
   The appropriate version can be downloaded using the following for ICP 2.1.0:
-  
+
   ```bash
   # docker run -e LICENSE=accept --net=host -v /usr/local/bin:/data ibmcom/kubernetes:v1.7.3-ee cp /kubectl /data
   ```
-  
+
 * [helm](https://github.com/kubernetes/helm/releases/tag/v2.6.0) CLI v2.6.0
 
   The appropriate version can be installed using the following for ICP 2.1.0:
-  
+
   ```bash
   docker run -t --entrypoint=/bin/cp -v /usr/local/bin:/data ibmcom/helm:v2.6.0  /helm /data/
   ```

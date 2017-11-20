@@ -1,2 +1,4 @@
 #!/bin/bash
-docker run -v $(pwd)/jupyter-notebooks:/home/jovyan/work -it --rm -p 8888:8888 tensorflow-stack 
+# Script to start a docker image with jupyter, numpy, sklearn, tensorflow, and expose the jupyter-notebooks folder so
+# user can play with the notbook. The dockerfile in this project creates the needed image.
+docker run -v $(pwd)/jupyter-notebooks:/home/jovyan/work -it --rm -p 8888:8888 pysparktf start-notebook.sh

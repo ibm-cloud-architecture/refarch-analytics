@@ -11,6 +11,7 @@ To get explanation of the components involved in this architecture see [Architec
 # Table of Contents
 * [Data Sciences quick introduction](#data-sciences)
 * [Solution overview](#solution_overview)
+* [Repositories of the solution](#repositories)
 * [Build and Run](#build_and_run)
 * [DevOps](#devops)
 * [Service management](#service_management)
@@ -26,16 +27,39 @@ This is all about using mathematical and statistical methods to forecast future 
 ## Prescriptive analytics
 Prescriptive analytics is used to optimize business decisions by simulating scenarios based on a set of constraints. The grocery store owner  wants to creating a staffing schedule for his employees, but to do so he will have to account for factors like availability, vacation time, number of hours of work, potential emergencies and so on (constraints) and create a schedule that works for everyone while ensuring that his business is able to function on a day to day basis.
 
+## Some concepts
+
+## Challenges
+There are a set of standard challenges while developing an IT solution which integrates results from analytics model. We are listing some that we want to address, document and support as requirements.
+* Are we considering a scoring service or a classification one?
+* Is it a batch processing to update static records or real time processing
+* How to control resource allocation for Machine Learning job.
+* How to manage consistency between model and data and code: version management
+* How to assess the features needed for the training and test sets.
+* How to leverage real time cognitive / deep learning classification inside scoring service
+
 ## Methodology
-Combining the development of analytics, machine learning and traditional software development involves adapting the agile iterative methodology. At IBM we are using the Design thinking and lean approach for developing innovative business applications. The garage method explains this approach. In [this article](./docs/methodology.md) we cover the specifics activities for analytics. 
+Combining the development of analytics, machine learning and traditional software development involves adapting the agile iterative methodology. At IBM we are using the Design thinking and lean approach for developing innovative business applications. The garage method explains this approach. In [this article](./docs/methodology.md) we cover the specifics activities for analytics.
 
 # Solution Overview
-The approach is to over the following capabilities:
-* Develop model with Data Science eXperience
-* Integrate to different data sources
+The solution needs to cover the following capabilities:
+* Develop model with Data Science eXperience using static data loaded in DSX or in DB2 Warehouse
+* Move data from static database to Db2 warehouse
+* Integrate to different data sources in real time to get value for selected features
 
-The system context may look like:  
+The system context may look like the following figure:  
 ![](docs/gr-syst-ctx.png)
+
+* The data scientists are using DSX to collaborate on models. The data they work one are coming from DB2 warehouse
+* The finalized model is implemented and deployed as a scoring service using a micro service approach
+* Data may come from different data sources, customer internal database, and SaaS CRM application, tone analyzer service and tweet classifications
+* A front end application is developed to interact with the user and consume the scoring service to assess the risk for churn
+* The front end application is using a product catalog managed by a MDM, and can interact with the customer database via APIs defined in API management and supported by a data access layer micro service.
+
+# Repositories
+The following repositories are part of the solution
+* [Customer micro service](https://github.com/ibm-cloud-architecture/refarch-integration-services)
+* [Integration tests](https://github.com/ibm-cloud-architecture/refarch-integration-tests)
 
 # Build and run
 * [Notebook samples](jupyter-notebooks/README.md)

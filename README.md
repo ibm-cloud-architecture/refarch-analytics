@@ -50,11 +50,13 @@ The solution needs to cover the following capabilities:
 The system context may look like the following figure:  
 ![](docs/gr-syst-ctx.png)
 
-* The data scientists are using DSX to collaborate on models. The data they work one are coming from DB2 warehouse
+* The data scientists are using IBM Data Science eXperience to collaborate on models. The data they work one are coming from DB2 warehouse
 * The finalized model is implemented and deployed as a scoring service using a micro service approach
 * Data may come from different data sources, customer internal database, and SaaS CRM application, tone analyzer service and tweet classifications
 * A front end application is developed to interact with the user and consume the scoring service to assess the risk for churn
 * The front end application is using a product catalog managed by a MDM, and can interact with the customer database via APIs defined in API management and supported by a data access layer micro service.
+
+The proposed allocation of the components of this system context is still open, but we want to represent hybrid deployment and using IBM Cloud private to leverage cloud development practices for any new micro services and web application deployment.
 
 # Repositories
 The following repositories are part of the solution

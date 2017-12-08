@@ -14,7 +14,21 @@ To run those notebooks on DSX on ICP you need to have:
 ## Step 1- Upload data to Db2 Warehouse.
 
 ## Step 2- Load the customer churn analysis notebook in dsx
+In the DSX console
+1. go to the Projects view and create a new project. Specify a name (`CustomerChurnAnalysis`).
+1. Select the FromFile and browse to the CustomerChurnAnalysis.ipynb file in this folder, then click `create`. As of now (12/2017) you will not see the file references or upload widget. Click on `create` to finalize the project creation.
+1. In the project overview main page the Jupyter notebook should  be listed.  
 
 ## Step 3 - Execute the notebook step by Step
+To run the notebook, double click on it and you should reach the Jupyter notebook web interface.  
 
-## Step 4 - Deploy the model as a spark 
+![](../../docs/jupyter-dsx-view.png)
+
+The notebook has 2 types of cells - markdown (text) and code.
+Each cell with code can be executed independently or together (see options under the Cell menu). When working in this notebook, we will be running one cell at a time because we need to make code changes to some of the cells.
+To run the cell, position cursor in the code cell and click the Run (arrow) icon. The cell is running when you see the `*` next to it. Some cells have printable output.
+Work through this notebook by reading the instructions and executing code cell by cell. Some cells will require modifications before you run them.
+
+Note that not every cell has a visual output. The cell is still running if you see a `*` in the brackets next to the cell.
+
+## Step 4 - Deploy the model as a spark

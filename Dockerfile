@@ -15,4 +15,5 @@ RUN pip install keras==2.0.8
 RUN pip install nltk==3.2.4
 RUN pip install gensim==2.3.0
 RUN pip install wget
+# install visualization tools
 RUN pip install pixiedust

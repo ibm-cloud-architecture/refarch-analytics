@@ -1,7 +1,6 @@
 # Data Science eXperience
-This article presents how to get started on DSX running on ICP 2.1. This is an education material build from our own skill ramp-up.
-The server used is https://169.46.44.164:31843/
-You can register or use one of e CASE userid as a set up a LDAP server connected to DSX.
+This article presents how to get started on DSX running on ICP 2.1. This is an education material built from our own skill ramp-up.
+The server used is https://172.16.40.131:31843/
 
 # Learn with Basic notebooks
 ## Spark and notebook

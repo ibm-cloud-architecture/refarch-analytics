@@ -12,9 +12,9 @@ To get explanation of the components involved in this architecture see [Architec
 * [Data Sciences quick introduction](#data-sciences)
 * [Solution overview](#solution_overview)
 * [Repositories of the solution](#repositories)
-* [Build and Run](#build_and_run)
-* [DevOps](#devops)
-* [Service management](#service_management)
+* [Build and Run](#build-and-run)
+* [DevOps](#devops) with [deployment](#deployment)
+* [Service management](#service-management)
 * [Compendium](#compendium)
 * [Contribute](#contribute)
 
@@ -22,8 +22,10 @@ To get explanation of the components involved in this architecture see [Architec
 Data science falls into these three categories:
 ## Descriptive analytics
 This is likely the most common type of analytics leveraged to create dashboards and reports. They describe and summarize events that have already occurred. For example, think of a grocery store owner who wants to know how items of each product were sold in all store within a region in the last five years.
+
 ## Predictive analytics
 This is all about using mathematical and statistical methods to forecast future outcomes. The grocery store owner wants to understand how many products could potentially be sold in the next couple of months so that he can make a decision on inventory levels.
+
 ## Prescriptive analytics
 Prescriptive analytics is used to optimize business decisions by simulating scenarios based on a set of constraints. The grocery store owner  wants to creating a staffing schedule for his employees, but to do so he will have to account for factors like availability, vacation time, number of hours of work, potential emergencies and so on (constraints) and create a schedule that works for everyone while ensuring that his business is able to function on a day to day basis.
 
@@ -61,15 +63,20 @@ The proposed allocation of the components of this system context is still open, 
 # Repositories
 The following repositories are part of the solution
 * [Customer micro service](https://github.com/ibm-cloud-architecture/refarch-integration-services) is a java based micro service to expose operations on the customer, account and purchase order resources. Packaged as docker image with Liberty server, it can be deployed on ICP. In the system context above the customer database and a data access service in front of the database.
-* [Integration tests](https://github.com/ibm-cloud-architecture/refarch-integration-tests) is a project to manage the different integration tests. In this project there are tests to validate the backend services of the solution.
+* [Integration tests](https://github.com/ibm-cloud-architecture/refarch-integration-tests) is a project to manage the different integration tests. In this project there are tests to validate the backend services of this solution under the src/test/java project, junit test under the package `dashdb.icp.tests`.
 
 # Build and run
-* [Notebook samples](jupyter-notebooks/README.md)
+## For Data Sciences
+* [Notebook explanations](notebooks/README.md)
+
+## For customer manager
+The user interface is packaged as part of the [Case Portal application]().
 
 # DevOps
 ## Continuous integration
 ## Deployment
-* [Deploy Data Science eXperience to IBM Cloud Private](docs/ICP/README.md)
+* [Deploy Data Science eXperience (DSX) to IBM Cloud Private](docs/ICP/README.md)
+* [Deploy Db2 Warehouse to IBM Cloud Private](docs/db2warehouse/README.md)
 
 ## Continuous testing
 
@@ -94,3 +101,5 @@ We really value contributions and to maximize the impact of code contributions w
 * Always pull the latest changes from upstream and rebase before creating pull request.
 
 If you want to contribute, start by using git fork on this repository and then clone your own repository to your local workstation for development purpose. Add the up-stream repository to keep synchronized with the master.
+
+Please [contact me](boyerje@us.ibm.com) for any questions.

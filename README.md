@@ -19,6 +19,8 @@ To get explanation of the components involved in this architecture see [Architec
 * [Contribute](#contribute)
 
 # Data Sciences Introduction
+The goals for data science is to infer from data actionable insights for the business execution improvement. The main stakeholders are business users, upper managers, who want to get improvement to some important metrics and indicators to control their business goals and objectives. Data scientists have to work closely with business users and be able to explain and represent findings clearly and with good visualization, pertinent for the business users.
+
 Data science falls into these three categories:
 ## Descriptive analytics
 This is likely the most common type of analytics leveraged to create dashboards and reports. They describe and summarize events that have already occurred. For example, think of a grocery store owner who wants to know how items of each product were sold in all store within a region in the last five years.
@@ -70,7 +72,7 @@ The following repositories are part of the solution
 * [Notebook explanations](notebooks/README.md)
 
 ## For customer manager
-The user interface is packaged as part of the [Case Portal application]().
+The user interface is packaged as part of the [Case Portal application](https://github.com/ibm-cloud-architecture/refarch-caseinc-app) and we [documented](docs/UI/README.md) how add the specifics customer management UI inside the portal.
 
 # DevOps
 ## Continuous integration

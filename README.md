@@ -10,7 +10,7 @@ To get explanation of the components involved in this architecture see [Architec
 
 # Table of Contents
 * [Data Sciences quick introduction](#data-sciences)
-* [Solution overview](#solution_overview)
+* [Solution overview](#solution-overview)
 * [Repositories of the solution](#repositories)
 * [Build and Run](#build-and-run)
 * [DevOps](#devops) with [deployment](#deployment)
@@ -32,18 +32,23 @@ This is all about using mathematical and statistical methods to forecast future 
 Prescriptive analytics is used to optimize business decisions by simulating scenarios based on a set of constraints. The grocery store owner  wants to creating a staffing schedule for his employees, but to do so he will have to account for factors like availability, vacation time, number of hours of work, potential emergencies and so on (constraints) and create a schedule that works for everyone while ensuring that his business is able to function on a day to day basis.
 
 ## Some concepts
+* **supervised learning**: learn a model from labeled training data that allows us to make predictions about unseen or future data. We give to the algorithm a dataset with a right answers (y), during the training, and we validate the model accuracy with a test data set with right answers. So a data set needs to be split in training and test sets.
+* **unsupervised learning**: giving a dataset, try to find tendency in the data, by using techniques like clustering.
+* **classification** problem is when we are trying to predict one of a small number of discrete-valued outputs
+* **regression** classification problem when the goal is to predict continuous value output
+* **a feature** is an attribute to use for classifying
 
 ## Challenges
 There are a set of standard challenges while developing an IT solution which integrates results from analytics model. We are listing some that we want to address, document and support as requirements.
 * Are we considering a scoring service or a classification one?
-* Is it a batch processing to update static records or real time processing
+* Is it a batch processing to update static records or real time processing on data stream or transactional data
 * How to control resource allocation for Machine Learning job.
 * How to manage consistency between model and data and code: version management
 * How to assess the features needed for the training and test sets.
 * How to leverage real time cognitive / deep learning classification inside scoring service
 
 ## Methodology
-Combining the development of analytics, machine learning and traditional software development involves adapting the agile iterative methodology. At IBM we are using the Design thinking and lean approach for developing innovative business applications. The garage method explains this approach. In [this article](./docs/methodology.md) we cover the specifics activities for analytics.
+Combining the development of analytics, machine learning and traditional software development involves adapting the agile iterative methodology. At IBM we are using the Design thinking and lean approach for developing innovative business applications. The [garage method](https://www.ibm.com/cloud/garage/) explains this approach. To support AI and analytics the method needs to be extended, focusing on data and data sciences. In [this article](./docs/methodology.md) we cover the specifics activities for analytics.
 
 # Solution Overview
 The solution needs to cover the following capabilities:
@@ -64,7 +69,8 @@ The proposed allocation of the components of this system context is still open, 
 
 # Repositories
 The following repositories are part of the solution
-* [Customer micro service](https://github.com/ibm-cloud-architecture/refarch-integration-services) is a java based micro service to expose operations on the customer, account and purchase order resources. Packaged as docker image with Liberty server, it can be deployed on ICP. In the system context above the customer database and a data access service in front of the database.
+* [Customer management micro service](https://github.com/ibm-cloud-architecture/refarch-integration-services) is a java based micro service to expose operations on the customer, account and purchase order resources. Packaged as docker image with Liberty server, it can be deployed on ICP. In the system context above the customer database and a data access service in front of the database.
+* [Cognitive and analytics customer churn assessment](https://github.com/ibm-cloud-architecture/refarch-cognitive-analytics) using structured and unstructures data build a business application linking cognitive and analytics to learn customer's behavior and assess customer risk to churn while he/she interacts with your web site.
 * [Integration tests](https://github.com/ibm-cloud-architecture/refarch-integration-tests) is a project to manage the different integration tests. In this project there are tests to validate the backend services of this solution under the src/test/java project, junit test under the package `dashdb.icp.tests`.
 
 # Build and run
@@ -72,7 +78,7 @@ The following repositories are part of the solution
 * [Notebook explanations](notebooks/README.md)
 
 ## For customer manager
-The user interface is packaged as part of the [Case Portal application](https://github.com/ibm-cloud-architecture/refarch-caseinc-app) and we [documented](docs/UI/README.md) how add the specifics customer management UI inside the portal.
+The user interface is packaged as part of the [Case Portal application](https://github.com/ibm-cloud-architecture/refarch-caseinc-app) and we [documented](docs/UI/README.md) how add the specifics customer management UI inside the portal. The backend component is a micro-service developed with JAXRS, packaged with Liberty server as a docker image.
 
 # DevOps
 ## Continuous integration
@@ -89,6 +95,7 @@ The user interface is packaged as part of the [Case Portal application](https://
 * [Data Science Experience public page](https://datascience.ibm.com/)
 * [IBM Cloud Private](https://www.ibm.com/cloud-computing/products/ibm-cloud-private/)
 * [Developer works on Analytics](https://www.ibm.com/developerworks/learn/analytics/)
+* Integrate with swagger https://github.com/WASdev/sample.swagger
 
 # Contribute
 We welcome your contribution. There are multiple ways to contribute: report bugs and improvement suggestion, improve documentation and contribute code.

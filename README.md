@@ -81,6 +81,8 @@ The following repositories are part of the solution
 ## For customer manager
 The user interface is packaged as part of the [Case Portal application](https://github.com/ibm-cloud-architecture/refarch-caseinc-app) and we [documented](docs/UI/README.md) how add the specifics customer management UI inside the portal. The backend component is a micro-service developed with JAXRS, packaged with Liberty server as a docker image.
 
+## For Db2 Warehouse data ingestion
+
 # DevOps
 ## Continuous integration
 ## Deployment

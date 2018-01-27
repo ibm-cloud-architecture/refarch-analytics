@@ -18,7 +18,7 @@ This is the simplest storage to define. When Db2 was deployed using NFS as its p
 
 We used a 4-way dispersed volume with 2-brick redundancy for a total of 6 "disks". Initial deployment had performance characteristics 15-30% slower. Gluster does have the advantage of redundancy and parallelism of IO so would be recommended for longer-term database requirements in the environment.
 
-The note here is explaining our [Glusterfs configuration](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Resiliency/Configure_HA_ICP_cluster.md#install-glusterfs)
+For more information about the deployment of Gluster and the configuration we used see [High Availability Clustered Filesystems Setup](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Resiliency/Configure_HA_ICP_cluster.md#install-glusterfs)
 
 #### Turbo-Charging Gluster
 

@@ -11,6 +11,7 @@ To get explanation of the components involved in this architecture see [Architec
 # Table of Contents
 * [Data Sciences quick introduction](#data-sciences)
 * [Solution overview](#solution-overview)
+* [ICP for data](./docs/icp-data.md)
 * [Repositories of the solution](#repositories)
 * [Build and Run](#build-and-run)
 * [DevOps](#devops) with [deployment](#deployment)
@@ -82,6 +83,7 @@ The following repositories are part of the solution
 The user interface is packaged as part of the [Case Portal application](https://github.com/ibm-cloud-architecture/refarch-caseinc-app) and we [documented](docs/UI/README.md) how add the specifics customer management UI inside the portal. The backend component is a micro-service developed with JAXRS, packaged with Liberty server as a docker image.
 
 ## For Db2 Warehouse data ingestion
+For moving data to data warehouse there are different approaches, we documented one approach [here](docs/db2warehouse/CopyingData.md)
 
 # DevOps
 ## Continuous integration

@@ -63,7 +63,7 @@ This note explains the code for the Angular 4 component added to the WebApp Case
   })
   ```
 
-  1. Add the customer proxy feature to call the backend system. This module is using HTTP and Request libraries to make the call to the RESTful API. See the code customerProxy.js. 
+  1. Add the customer proxy feature to call the backend system. This module is using HTTP and Request libraries to make the call to the RESTful API. See the code customerProxy.js.
     ```
     getCustomers : function(config,req,res){
       var opts = buildOptions('GET','/customers',config);

@@ -80,10 +80,13 @@ The following repositories are part of the solution
 * [Notebook explanations](notebooks/README.md)
 
 ## For customer manager
-The user interface is packaged as part of the [Case Portal application](https://github.com/ibm-cloud-architecture/refarch-caseinc-app) and we [documented](docs/UI/README.md) how add the specifics customer management UI inside the portal. The backend component is a micro-service developed with JAXRS, packaged with Liberty server as a docker image.
+The user interface is packaged as part of the [Case Portal application](https://github.com/ibm-cloud-architecture/refarch-case-portal-app) and we [documented](docs/UI/README.md) how to add the specifics customer management UI inside the portal. The backend component is a micro-service developed with JAXRS, packaged with Liberty server as a docker image.
 
 ## For Db2 Warehouse data ingestion
 For moving data to data warehouse there are different approaches, we documented one approach [here](docs/db2warehouse/CopyingData.md)
+
+## For taxi scenario
+[This scenario](.docs/taxi_scenario/README.md) is based on public data on New York city taxi usage and illustrates on how a Data Scientist responds to a manager demand with a quick around time for data analysis using IBM Data management and jupyter notebooks. 
 
 # DevOps
 ## Continuous integration

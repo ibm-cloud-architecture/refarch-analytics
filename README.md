@@ -86,7 +86,7 @@ The user interface is packaged as part of the [Case Portal application](https://
 For moving data to data warehouse there are different approaches, we documented one approach [here](docs/db2warehouse/CopyingData.md)
 
 ## For taxi scenario
-[This scenario](.docs/taxi_scenario/README.md) is based on public data on New York city taxi usage and illustrates on how a Data Scientist responds to a manager demand with a quick around time for data analysis using IBM Data management and jupyter notebooks. 
+[This scenario](./docs/taxi_scenario/README.md) is based on public data on New York city taxi usage and illustrates on how a Data Scientist responds to a manager demand with a quick around time for data analysis using IBM Data management and jupyter notebooks. 
 
 # DevOps
 ## Continuous integration

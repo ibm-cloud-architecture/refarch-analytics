@@ -74,6 +74,7 @@ The following repositories are part of the solution
 * [Cognitive and analytics customer churn assessment](https://github.com/ibm-cloud-architecture/refarch-cognitive-analytics) using structured and unstructured data build a business application linking cognitive and analytics to learn customer's behavior and assess customer risk to churn while he/she interacts with your web site.
 * [Integration tests](https://github.com/ibm-cloud-architecture/refarch-integration-tests) is a project to manage the different integration tests. In this project there are tests to validate the backend services of this solution under the src/test/java project, junit test under the package `dashdb.icp.tests`.
 * [Deploy mongoDB on ICP](https://github.com/ibm-cloud-architecture/refarch-icp-mongodb).
+* [Do real time streaming analytics with Apache Kafka](docs/kafka/readme.md)
 
 # Build and run
 ## For Data Sciences
@@ -86,7 +87,7 @@ The user interface is packaged as part of the [Case Portal application](https://
 For moving data to data warehouse there are different approaches, we documented one approach [here](docs/db2warehouse/CopyingData.md)
 
 ## For taxi scenario
-[This scenario](./docs/taxi_scenario/README.md) is based on public data on New York city taxi usage and illustrates on how a Data Scientist responds to a manager demand with a quick around time for data analysis using IBM Data management and jupyter notebooks. 
+[This scenario](./docs/taxi_scenario/README.md) is based on public data on New York city taxi usage and illustrates on how a Data Scientist responds to a manager demand with a quick around time for data analysis using IBM Data management and jupyter notebooks.
 
 # DevOps
 ## Continuous integration
@@ -97,9 +98,10 @@ For moving data to data warehouse there are different approaches, we documented 
 ## Continuous testing
 
 # Service management  
+* [DB2 backup and restore in the context of ICP deployment](docs/db2warehouse/README.md#backing-up-databases)
 
 # Compendium
-* [IBM Analytics reference architecture](https://www.ibm.com/cloud/garage/content/architecture/dataAnalyticsArchitecture/dataAnalyticsCustomerExperience)
+* [IBM Analytics reference architecture](https://www.ibm.com/cloud/garage/content/architecture/dataAnalyticsArchitecture)
 * [Data Science Experience public page](https://datascience.ibm.com/)
 * [IBM Cloud Private](https://www.ibm.com/cloud-computing/products/ibm-cloud-private/)
 * [Developer works on Analytics](https://www.ibm.com/developerworks/learn/analytics/)

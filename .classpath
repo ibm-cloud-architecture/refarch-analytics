@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="streams.examples/src/main/java"/>
+	<classpathentry kind="src" output="IBMEventStreams_GreenKafkaTest/target/classes" path="IBMEventStreams_GreenKafkaTest/src/main/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="var" path="maven_repo/org/apache/kafka/connect-api/1.1.0/connect-api-1.1.0.jar"/>
 	<classpathentry kind="var" path="maven_repo/org/apache/kafka/kafka-streams/1.1.0/kafka-streams-1.1.0.jar"/>

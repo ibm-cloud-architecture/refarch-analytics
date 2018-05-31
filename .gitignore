@@ -1,0 +1,14 @@
+IBMEventStreams_GreenKafkaTest/target
+streams.examples/target/
+IBMEventStreams_GreenKafkaTest/.m2
+
+
+IBMEventStreams_GreenKafkaTest/.classpath
+IBMEventStreams_GreenKafkaTest/.project
+IBMEventStreams_GreenKafkaTest/.settings
+
+IBMEventStreams_GreenKafkaTest/caches
+IBMEventStreams_GreenKafkaTest/local.properties
+IBMEventStreams_GreenKafkaTest.*.swp
+.DS_Store
+IBMEventStreams_GreenKafkaTest/src/main/liberty/config/server.env

@@ -66,7 +66,4 @@ public class Producer {
         kafkaProducer.close();
     }
     
-    public static void main(String[] args) throws Exception {
-
-    }
 }

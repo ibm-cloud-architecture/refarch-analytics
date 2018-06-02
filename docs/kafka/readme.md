@@ -1,25 +1,40 @@
 # Apache Kafka
 [Kafka]() is a distributed streaming platform. It has three key capabilities:
 * Publish and subscribe to streams of records, similar to a message queue or enterprise messaging system.
-* Store streams of records in a fault-tolerant durable way.
+* Store streams of data records on disk and replicate within the cluster for fault-tolerance.
+* It is built on top of the ZooKeeper synchronization service
 * Process streams of records as they occur.
 
-## Summary
-* Kafka is run as a cluster on one or more servers that can span multiple data centers.
-* The Kafka cluster stores streams of records in categories called topics.
-* Each record consists of a key, a value, and a timestamp.
-* Use the concept of topic in which records are published and consumed by multi-subscribers.
-* Each topic has a a partitioned log where each partition is ordered immutable sequence of records.
-* Each partition is replicated across a configurable number of servers for fault tolerance
-* It uses topics with a pub/sub combined with queue model: it uses the concept of consumer group to divide the processing over a collection of consumer processes, and message can be broadcasted to multiple groups.
-* Stream processing is helpful for handling out-of-order data, *reprocessing* input as code changes, and performing stateful computations. It uses producer / consumer. stateful storage and consumer groups. It treats both past and future data the same way.
+![](kafka-hl-view.png)
 
-### Kafka Stream details
+## Summary
+* Kafka is run as a cluster on one or more **broker** servers that can span multiple data centers.
+* The Kafka cluster stores streams of records in **topics**.
+* Each broker may have zero or more partitions per topic.
+* Each partition is ordered immutable sequence of records.
+* Each record consists of a key, a value, and a timestamp.
+* Consumer publish data records to topics and consumers subscribe to topics.
+* Each partition is replicated among brokers.
+* Each partition is replicated across a configurable number of servers for fault tolerance
+* Each partitioned message has a unique sequence id called **offset** (abcde, ab, a are offsets).
+* offsets are maintained in Zookeeper, so consumer can read next message correctly even during broker server outrages.
+* Kafka uses topics with a pub/sub combined with queue model: it uses the concept of consumer group to divide the processing over a collection of consumer processes, and message can be broadcasted to multiple groups.
+* Zookeeper is used to keep cluster state, notify consumers and producers for new or failed broker
+* Stream processing is helpful for handling out-of-order data, *reprocessing* input as code changes, and performing stateful computations. It uses producer / consumer, stateful storage and consumer groups. It treats both past and future data the same way.
+* Consumer performs asynchronous pull to the connected broker via the subscription to a topic
+
+###  Use cases
+* Aggregation of event coming from multiple producers.
+* Monitor distributed applications to produce centralized feed of operational data.
+* Logs collector from multiple services
+
+
+### Kafka Stream Details
 Stream has the following capabilities:
 * Continuous real time flow of records
-* records are key-value pairs
+* It supports exactly-once processing semantics to guarantee that each record will be processed once and only once even when there is a failure
 * stream APIs transform, aggregate and enrich data, per record with milli second latency, from one topic to another one.
-* support stateful and windowing operations
+* support stateful and windowing operations by processing one record at a time.
 * Can be integrated in java application and micro service. No need for separate processing cluster. It is a Java API. Stream app is done outside of the broker code!.
 * Elastic, highly scalable, fault tolerance
 * Deploy to container
@@ -32,7 +47,7 @@ Stream has the following capabilities:
 * Tasks can then instantiate their own processor topology based on the assigned partitions
 
 
-## Run Kafka in docker
+## Run Kafka in Docker
 ### On Linux
 If you run on a linux operating system, you can use the [Spotify kafka image](https://hub.docker.com/r/spotify/kafka/) from dockerhub as it includes [Zookeeper]() and Kafka in a single image.
 
@@ -68,6 +83,8 @@ confluentinc/cp-kafka              latest              c3a2f8363de5        6 day
 confluentinc/cp-zookeeper          latest              18b57832a1e2        6 days ago          562MB
 ```
 
+@@@@ To continue
+
 ## Install on ICP
 *(Tested on May 2018 on ibm-eventstreams-dev helm chart 0.1.1 of 5/24 on ICP 2.1.0.3)*
 
@@ -86,19 +103,22 @@ This figure above illustrates the following:
 The roles, rolebinding and secret as part of the Role Based Access Control.
 
 ![](helm-rel03.png)
-The service to expose capabilities to external world:
-* admin condole, ZooKeeper servers, Kafka brokers, and proxises
-Stateful sets for ZooKeeper and Kafka with 3 replicas each.
+The service to expose capabilities to external world via nodePort type:
+* admin console port 32492 on the k8s proxy IP address
+* REST api port 30031
+* stream proxy port bootstrap: 31348, broker 0: 32489...
 
-To get access to the Admin console by using the IP address of the master node and the port number of the service, which you can get using the kubectl get service information command like:
+To get access to the Admin console by using the IP address of the master pr proxy node and the port number of the service, which you can get using the kubectl get service information command like:
 ```
 kubectl get svc -n greencompute "greenkafka-ibm-eventstreams-admin-ui-proxy-svc" -o 'jsonpath={.spec.ports[?(@.name=="admin-ui-https")].nodePort}'
 
 ```
 
-Use the Event Stream Toolbox to download a getting started application. One example is in the IBMEventStreams_GreenKafkaTest folder, and how to run it is in the [readme](../../IBMEventStreams_GreenKafkaTest/README.md)
+![](ES-admin-console.png)
 
-The application run in Liberty at the URL: http://localhost:9080/GreenKafkaTest/ and deliver a nice simple interface   
+Use the Event Stream Toolbox to download a getting started application. One example of the generated app is in the IBMEventStreams_GreenKafkaTest folder, and a description on how to run it is in the [readme](../../IBMEventStreams_GreenKafkaTest/README.md)
+
+The application runs in Liberty at the URL: http://localhost:9080/GreenKafkaTest/ and delivers a nice simple interface   
 ![](start-home.png)
 to test the producer and consumer of test message:
 
@@ -106,6 +126,37 @@ to test the producer and consumer of test message:
 
 
 ![](app-consumer.png)  
+
+## Verifying installation for kafka running in ICP
+Once connected to the cluster with kubectl with commands like:
+```
+kubectl config set-cluster cluster.local --server=https://172.16.40.130:8001 --insecure-skip-tls-verify=true
+kubectl config set-context cluster.local-context --cluster=cluster.local
+kubectl config set-credentials admin --token=e.......
+kubectl config set-context cluster.local-context --user=admin --namespace=greencompute
+kubectl config use-context cluster.local-context
+```
+Get the list of pods for the namespace you used to install kafka / event streams:
+```
+$ kubectl get pods -n greencompute
+NAME                                                              READY     STATUS    RESTARTS   AGE
+greenkafka-ibm-eventstreams-kafka-sts-0                           1/2       Running   32         1d
+greenkafka-ibm-eventstreams-kafka-sts-1                           2/2       Running   10         1d
+greenkafka-ibm-eventstreams-kafka-sts-2                           2/2       Running   18         1d
+greenkafka-ibm-eventstreams-proxy-controller-deploy-6f6796jlzcz   1/1       Running   0          1d
+greenkafka-ibm-eventstreams-rest-deploy-54b6d4cbb8-hjnxx          3/3       Running   0          1d
+greenkafka-ibm-eventstreams-ui-deploy-68d5488cf7-gn48n            3/3       Running   0          1d
+greenkafka-ibm-eventstreams-zookeeper-sts-0                       1/1       Running   0          1d
+greenkafka-ibm-eventstreams-zookeeper-sts-1                       1/1       Running   0          1d
+greenkafka-ibm-eventstreams-zookeeper-sts-2                       1/1       Running   0          1d
+```
+
+Select the first pod: greenkafka-ibm-eventstreams-kafka-sts-0, then execute a bash shell so you can access the kafka tools:
+```
+$ kubectl exec greenkafka-ibm-eventstreams-kafka-sts-0 -itn greencompute -- bash
+bash-3.4# cd /opt/kafka/bin
+```
+Now you have access to the same tools as above. The most important thing is to get the hostname and port number of the zookeeper server.
 
 Based on the generated code we tune the Word Count application from Kafka web site to produce document from external java producer to Kafka broker running in ICP and with producer outside of ICP. See [below section](#streaming-app)
 
@@ -119,8 +170,9 @@ From there is a quick summary of the possible commands:
 # Connect to the cluster
 bx es init
 
-# create a topic
+# create a topic  - default is 3 replicas
 bx es topic-create streams-plaintext-input
+bx es topic-create streams-wordcount-output --replication-factor 1 --partitions 1
 
 # list topics
 bx es topics
@@ -169,11 +221,10 @@ mvn exec:java -Dexec.mainClass=ibm.cte.kafka.play.WordCount
 
 Outputs of the WordCount application is actually a continuous stream of updates, where each output record is an updated count of a single word. A KTable is counting the occurrence of word, and a KStream send the output message with updated count.
 
-### Stream use cases
-* Aggregation of event coming from multiple producers
 
 ## compendium
 * [Stream API](https://kafka.apache.org/11/documentation/streams/)
+* [Validating the Stream deployment](https://developer.ibm.com/messaging/event-streams/docs/validating-the-deployment/)
 * [IBM Event Streams based on Kafka](https://developer.ibm.com/messaging/event-streams/)
 * [Developer works article](https://developer.ibm.com/messaging/event-streams/docs/learn-about-kafka/)
 * [Install Event Streams on ICP](https://developer.ibm.com/messaging/event-streams/docs/install-guide/)

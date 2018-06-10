@@ -33,8 +33,8 @@
 Stream has the following capabilities:
 * Continuous real time flow of records
 * It supports exactly-once processing semantics to guarantee that each record will be processed once and only once even when there is a failure
-* stream APIs transform, aggregate and enrich data, per record with milli second latency, from one topic to another one.
-* support stateful and windowing operations by processing one record at a time.
+* Stream APIs transform, aggregate and enrich data, per record with milli second latency, from one topic to another one.
+* Support stateful and windowing operations by processing one record at a time.
 * Can be integrated in java application and micro service. No need for separate processing cluster. It is a Java API. Stream app is done outside of the broker code!.
 * Elastic, highly scalable, fault tolerance
 * Deploy to container
@@ -46,6 +46,7 @@ Stream has the following capabilities:
 * An application's processor topology is scaled by breaking it into multiple tasks.
 * Tasks can then instantiate their own processor topology based on the assigned partitions
 
+### High Availability
 
 ## Run Kafka in Docker
 ### On Linux
@@ -56,14 +57,15 @@ It is started in background (-d), named "kafka" and mounting scripts/kafka folde
 docker run -d -p 2181:2181 -p 9092:9092 -v `pwd`:/scripts --env ADVERTISED_HOST=`docker-machine ip \`docker-machine active\`` --name kafka --env ADVERTISED_PORT=9092 spotify/kafka
 ```
 
-Then remote connect to the docker running instance to open a shell:
+Then remote connect to the docker container to open a bash shell:
 ```
 docker exec  -ti kafka /bin/bash
 ```
 
-Create a topic: it uses zookeeper as a backend to persist persist partition within the topic.
+Create a topic: it uses zookeeper as a backend to persist partition within the topic.
 
 ```
+cd /opt/kafka/bin
 ./kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic mytopic
 ./kafka-topics.sh --list --zookeeper localhost:2181
 ```
@@ -73,7 +75,7 @@ We have done shell scripts for you to do those command and test your local kafka
 * sendText.sh  Send a multiple lines message on mytopic topic- open this one in one terminal.
 * consumeMessage.sh  Connect to the topic to get messages. and this second in another terminal.
 
-### On MACOS
+### On MACOS with Docker
 Go to the `scripts/kafka` folder and start a 4 docker containers solution with Kafka, ZooKeeper, REST api, and schema registry using `docker-compose up` command. The images are from [confluent](https://github.com/confluentinc/)
 ```
 REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
@@ -83,7 +85,42 @@ confluentinc/cp-kafka              latest              c3a2f8363de5        6 day
 confluentinc/cp-zookeeper          latest              18b57832a1e2        6 days ago          562MB
 ```
 
-@@@@ To continue
+### On Mac with Docker Edge and Kubernetes
+This deployment is using the last Docker Edge version and is very efficient to do development.
+
+The folder scripts/kafka include a set of yaml files to configure zookeeper and kafka:
+```
+# Create the zookeeper single node (one replica) exposing port 2181
+kubectl create -f zookeeper-deployment.yaml
+# expose zokeeper with a nodeport service on port 30181 mapped to docker image port 2181
+kubectl create -f zookeeper-service.yaml
+```
+Modify the kafka deployment yaml file to change the IP addresses set with your ip address.
+```
+- name: KAFKA_ADVERTISED_HOST_NAME
+         value: "192.168.1.89"
+- name: KAFKA_ZOOKEEPER_CONNECT
+         value: 192.168.1.89:30181
+```
+Then create the kafka deployment:
+```
+$ kubectl create -f kafka-deployment.yaml
+# and the service to export a nodeport 30092
+$ kubectl create -f kafka-service.yaml
+```
+
+So now we can test with a tool like: kafkacat, that you can install with `brew install kafkacat`. To consume message use a terminal window and listen to the `test-topic` with `kafkacat -C -b 192.168.1.89:30092 -t test-topic`. To produce text message use a command like:
+```
+ echo "I'm a super interesting message" | kafkacat -P -b 192.168.1.89:30092 -t test-topic
+```
+
+```
+kubectl get pods
+NAME                         READY     STATUS    RESTARTS   AGE
+kafka-786975b994-cwqhs       1/1       Running   0          20m
+zookeeper-58759999cc-ff8fq   1/1       Running   0          55m
+```
+Kafka web site has an interesting use case to count words within a text.
 
 ## Install on ICP
 *(Tested on May 2018 on ibm-eventstreams-dev helm chart 0.1.1 of 5/24 on ICP 2.1.0.3)*
@@ -156,7 +193,16 @@ Select the first pod: greenkafka-ibm-eventstreams-kafka-sts-0, then execute a ba
 $ kubectl exec greenkafka-ibm-eventstreams-kafka-sts-0 -itn greencompute -- bash
 bash-3.4# cd /opt/kafka/bin
 ```
-Now you have access to the same tools as above. The most important thing is to get the hostname and port number of the zookeeper server.
+Now you have access to the same tools as above. The most important thing is to get the hostname and port number of the zookeeper server. To do so use the kubectl command:
+```
+$ kubectl describe pods greenkafka-ibm-eventstreams-zookeeper-sts-0
+```
+In the long result get the client port ( ZK_CLIENT_PORT: 2181) information and IP address (IP: 192.168.76.235). Using these information, in the bash in the broker server we can do the following command to get the topics configured.
+
+```
+./kafka-topics.sh --list -zookeeper  192.168.76.235:2181
+```
+
 
 Based on the generated code we tune the Word Count application from Kafka web site to produce document from external java producer to Kafka broker running in ICP and with producer outside of ICP. See [below section](#streaming-app)
 
@@ -185,14 +231,14 @@ bx es topic-delete streams-plaintext-input
 For ICP see this centralized [note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/icp/troubleshooting.md)
 
 ## Streaming app
-The Java code in the stream.examples folder is using the quickstart code based. Code for processing event does:
+The Java code in the `stream.examples` folder is using the Apache kafka quickstart code as a base. In general code for processing event does the following:
 * Set a properties object to specify which brokers to connect to and what kind of serialization to use.
 * Define a stream client: if you want stream of record use KStream, if you want a changelog with the last value of a given key use KTable (Example is to keep a user profile with userid as key)
 * Create a topology of input source and sink target and action to perform on the records
-* Start the stream client to consumer records
+* Start the stream client to consume records
 
 ### Example to run the Word Count application:
-1. Be sure to create the needed different topics once the kafka broker is started (mytopic, streams-plaintext-input, streams-linesplit-output, streams-pipe-output, streams-wordcount-output):
+1. Be sure to create the needed different topics once the kafka broker is started (`test-topic`, streams-plaintext-input, streams-linesplit-output, streams-pipe-output, streams-wordcount-output):
 ```
 docker exec -ti kafka /bin/bash
 cd /scripts

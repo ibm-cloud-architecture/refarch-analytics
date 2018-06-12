@@ -40,13 +40,35 @@ Stream has the following capabilities:
 * Deploy to container
 
 ### Architecture
-[](kafka-stream-arch.png)
+
+![](kafka-stream-arch.png)
+
 * Kafka Streams partitions data for processing it. Partition enables data locality, elasticity, scalability, high performance, and fault tolerance
 * The keys of data records determine the partitioning of data in both Kafka and Kafka Streams
 * An application's processor topology is scaled by breaking it into multiple tasks.
 * Tasks can then instantiate their own processor topology based on the assigned partitions
 
-### High Availability
+### High Availability in the context of Kubernetes deployment
+For any Kubernetes deployment real high availability is constrained by the application / workload deployed on it. The kubernetes platform supports high availability by having at least the following configuration:
+* At least three master nodes (always a odd number). One is active at master, the others are in standby.
+* Three proxy nodes.
+* At least three worker nodes
+* Externalize the management stack to three manager nodes
+* Shared storage outside of the cluster to support private image registry, audit logs
+* Use Etcd cluster: See recommendations [from here](https://github.com/coreos/etcd/blob/master/Documentation/op-guide/clustering.md). The virtual IP manager assign virtual IP address to master and proxy nodes and monitors the health of the cluster. It leverages ETCD for storing information, so it is important that etcd is high available.  
+For IBM Cloud private HA installation see the [product documentation](https://www.ibm.com/support/knowledgecenter/en/SSBS6K_2.1.0.3/installing/custom_install.html#HA)
+
+Traditionally disaster recovery and high availability were always consider separated subject. Now active/active deployment where workloads are deployed in different data center, are more a common request. IBM Cloud Private is supporting [federation cross data centers](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Resiliency/Federating_ICP_clusters.md), but you need to ensure to have low latency network connections, but not all components of a solution is well suited for cross data center clustering.
+
+For configuring ICP for HA on VmWare read [this note](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Configuring_ICP_for_HA_on_VMware.md).
+From Confluent web site the [kafka production deployment considerations article](https://docs.confluent.io/current/kafka/deployment.html)  is a good source of information. From there the recommendation is to avoid cluster that span multiple data centers and specially long distance ones.
+
+You need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble, and will be able to communicate with each other.
+
+For Kafka streaming and considering correlation of events coming from multiple sources, it is not easy to do
+
+So the following diagram proposes a HA topology for kafka in kubernetes.
+![](kafka-k8s.png)
 
 ## Run Kafka in Docker
 ### On Linux
@@ -120,7 +142,15 @@ NAME                         READY     STATUS    RESTARTS   AGE
 kafka-786975b994-cwqhs       1/1       Running   0          20m
 zookeeper-58759999cc-ff8fq   1/1       Running   0          55m
 ```
-Kafka web site has an interesting use case to count words within a text.
+
+To work on topic, connect to the kafka container and use the same tools as before but specify the zookeeper running in a separate container.
+```
+docker exec -ti <kafka-container-id> bash
+bash-4.4# cd /opt/kafka/bin
+bash-4.4# ./kafka-topics.sh --list --zookeeper 192.168.1.89:30181
+ ./kafka-topics.sh --create --replication-factor 1 --partitions 1 --topic streams-wordcount-output --zookeeper 192.168.1.89:30181
+```
+Kafka web site has an interesting use case to count words within a text, we will detail that in [this section].
 
 ## Install on ICP
 *(Tested on May 2018 on ibm-eventstreams-dev helm chart 0.1.1 of 5/24 on ICP 2.1.0.3)*

@@ -261,14 +261,17 @@ bx es topic-delete streams-plaintext-input
 For ICP see this centralized [note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/icp/troubleshooting.md)
 
 ## Streaming app
-The Java code in the `stream.examples` folder is using the Apache kafka quickstart code as a base. In general code for processing event does the following:
+The Java code in the project: https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/asset-event-producer includes examples of stateless consumers, a text producer, and some example of stateful operation. In general code for processing event does the following:
 * Set a properties object to specify which brokers to connect to and what kind of serialization to use.
 * Define a stream client: if you want stream of record use KStream, if you want a changelog with the last value of a given key use KTable (Example is to keep a user profile with userid as key)
 * Create a topology of input source and sink target and action to perform on the records
 * Start the stream client to consume records
 
+A stateful operator uses the streaming Domain Specific Language, and is used for aggregation, join and time window operators. Stateful transformations require a state store associated with the stream processor.
+
+
 ### Example to run the Word Count application:
-1. Be sure to create the needed different topics once the kafka broker is started (`test-topic`, streams-plaintext-input, streams-linesplit-output, streams-pipe-output, streams-wordcount-output):
+1. Be sure to create the needed different topics once the kafka broker is started (test-topic, streams-wordcount-output):
 ```
 docker exec -ti kafka /bin/bash
 cd /scripts

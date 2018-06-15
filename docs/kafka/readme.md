@@ -261,13 +261,34 @@ bx es topic-delete streams-plaintext-input
 For ICP see this centralized [note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/icp/troubleshooting.md)
 
 ## Streaming app
-The Java code in the project: https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/asset-event-producer includes examples of stateless consumers, a text producer, and some example of stateful operation. In general code for processing event does the following:
+The Java code in the project: https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/asset-event-producer includes examples of stateless consumers, a text producer, and some example of stateful operations. In general code for processing event does the following:
 * Set a properties object to specify which brokers to connect to and what kind of serialization to use.
 * Define a stream client: if you want stream of record use KStream, if you want a changelog with the last value of a given key use KTable (Example is to keep a user profile with userid as key)
 * Create a topology of input source and sink target and action to perform on the records
 * Start the stream client to consume records
 
-A stateful operator uses the streaming Domain Specific Language, and is used for aggregation, join and time window operators. Stateful transformations require a state store associated with the stream processor.
+A stateful operator uses the streaming Domain Specific Language, and is used for aggregation, join and time window operators. Stateful transformations require a state store associated with the stream processor. The code below comes from Kafka examples and is counting word occurence in text
+```java
+    final StreamsBuilder builder = new StreamsBuilder();
+    final Pattern pattern = Pattern.compile("\\W+");
+
+    KStream<String, String> textLines = builder.stream(source);
+
+    KTable<String, Long> wordCounts = textLines
+       .flatMapValues(textLine -> Arrays.asList(pattern.split(textLine.toLowerCase())))
+       .print(Printed.toSysOut()
+       .groupBy((key, word) -> word)
+       .count(Materialized.<String, Long, KeyValueStore<Bytes, byte[]>>as("counts-store"));
+       wordCounts.toStream().to(sink, Produced.with(Serdes.String(), Serdes.Long()));
+
+       KafkaStreams streams = new KafkaStreams(builder.build(), props);
+       streams.start();
+```
+* [KStream](https://kafka.apache.org/10/javadoc/org/apache/kafka/streams/kstream/KStream.html) represents KeyValue records coming as event stream from the topic.
+* flatMapValues() transforms the value of each record in "this" stream into zero or more values with the same key in the new KStream. So here the text line is split into words. The parameter is a [ValueMapper](https://kafka.apache.org/10/javadoc/org/apache/kafka/streams/kstream/ValueMapper.html) which applies transformation on values but keeping the key.
+* groupBy() Group the records of this KStream on a new key that is selected using the provided KeyValueMapper. So here it create new KStream with the extracted word as key.
+* count() counts the number of records in this stream by the grouped key. Materialized is an api to define a store to persist state.
+
 
 
 ### Example to run the Word Count application:

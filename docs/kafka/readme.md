@@ -268,7 +268,7 @@ The Java code in the project: https://github.com/ibm-cloud-architecture/refarch-
 * Start the stream client to consume records
 
 A stateful operator uses the streaming Domain Specific Language, and is used for aggregation, join and time window operators. Stateful transformations require a state store associated with the stream processor. The code below comes from Kafka examples and is counting word occurence in text
-```java
+```
     final StreamsBuilder builder = new StreamsBuilder();
     final Pattern pattern = Pattern.compile("\\W+");
 
@@ -279,15 +279,17 @@ A stateful operator uses the streaming Domain Specific Language, and is used for
        .print(Printed.toSysOut()
        .groupBy((key, word) -> word)
        .count(Materialized.<String, Long, KeyValueStore<Bytes, byte[]>>as("counts-store"));
-       wordCounts.toStream().to(sink, Produced.with(Serdes.String(), Serdes.Long()));
+    wordCounts.toStream().to(sink, Produced.with(Serdes.String(), Serdes.Long()));
 
-       KafkaStreams streams = new KafkaStreams(builder.build(), props);
-       streams.start();
+    KafkaStreams streams = new KafkaStreams(builder.build(), props);
+    streams.start();
 ```
 * [KStream](https://kafka.apache.org/10/javadoc/org/apache/kafka/streams/kstream/KStream.html) represents KeyValue records coming as event stream from the topic.
 * flatMapValues() transforms the value of each record in "this" stream into zero or more values with the same key in the new KStream. So here the text line is split into words. The parameter is a [ValueMapper](https://kafka.apache.org/10/javadoc/org/apache/kafka/streams/kstream/ValueMapper.html) which applies transformation on values but keeping the key.
 * groupBy() Group the records of this KStream on a new key that is selected using the provided KeyValueMapper. So here it create new KStream with the extracted word as key.
-* count() counts the number of records in this stream by the grouped key. Materialized is an api to define a store to persist state.
+* count() counts the number of records in this stream by the grouped key. Materialized is an api to define a store to persist state. So here the state store is "counts-store".
+* Produced defines how to provide the optional parameters when producing to new topics.
+* KTable is an abstraction of a changelog stream from a primary-keyed table.
 
 
 
@@ -328,3 +330,4 @@ Outputs of the WordCount application is actually a continuous stream of updates,
 * [IBM Event Streams based on Kafka](https://developer.ibm.com/messaging/event-streams/)
 * [Developer works article](https://developer.ibm.com/messaging/event-streams/docs/learn-about-kafka/)
 * [Install Event Streams on ICP](https://developer.ibm.com/messaging/event-streams/docs/install-guide/)
+* [Spark and Kafka with direct stream, persistence considerations](http://aseigneurin.github.io/2016/05/07/spark-kafka-achieving-zero-data-loss.html)

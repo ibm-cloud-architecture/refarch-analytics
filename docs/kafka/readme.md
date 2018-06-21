@@ -1,27 +1,28 @@
 # Apache Kafka
-[Kafka]() is a distributed streaming platform. It has three key capabilities:
-* Publish and subscribe to streams of records, similar to a message queue or enterprise messaging system.
+[Kafka](https://kafka.apache.org/) is a distributed streaming platform. It has three key capabilities:
+* Publish and subscribe streams of records, similar to a message queue or enterprise messaging system.
 * Store streams of data records on disk and replicate within the cluster for fault-tolerance.
-* It is built on top of the ZooKeeper synchronization service
+* It is built on top of the ZooKeeper synchronization service to keep topic, partition and offsets states
 * Process streams of records as they occur.
 
 ![](kafka-hl-view.png)
 
-## Summary
-* Kafka is run as a cluster on one or more **broker** servers that can span multiple data centers.
-* The Kafka cluster stores streams of records in **topics**.
+The diagram above shows brokers allocated on three servers, partitions used by producer and consumers and data replication. Zookeeper runs also in cluster. Before going into the detail of this architecture we want to summarize the key concepts.
+
+## Key concepts
+* Kafka runs as a cluster of one or more **broker** servers that can, in theory, span multiple data centers.
+* The Kafka cluster stores streams of records in **topics**. Topic is referenced by producer to send data too, and subscribed by consumers.
 * Each broker may have zero or more partitions per topic.
-* Each partition is ordered immutable sequence of records.
+* Each partition is ordered immutable sequence of records, that are persisted for a long time period.
 * Each record consists of a key, a value, and a timestamp.
-* Consumer publish data records to topics and consumers subscribe to topics.
-* Each partition is replicated among brokers.
-* Each partition is replicated across a configurable number of servers for fault tolerance
-* Each partitioned message has a unique sequence id called **offset** (abcde, ab, a are offsets).
-* offsets are maintained in Zookeeper, so consumer can read next message correctly even during broker server outrages.
+* Producers publish data records to topic and consumers subscribe to topics. When a record is produced without specifying a partition, a partition will be chosen using a hash of the key. If the record did not provide a timestamp, the producer will stamp the record with its current time (creation time or log append time). They hold a pool of buffer to keep records not yet transmitted to the server.
+* Each partition is replicated across a configurable number of servers for fault tolerance. The number of partition will depend on the number of consumer, the traffic pattern
+* Each partitioned message has a unique sequence id called **offset** ("abcde, ab, a ..." are offsets).
+* Offsets are maintained in Zookeeper, so consumers can read next message (or from a specific offset) correctly even during broker server outrages.
 * Kafka uses topics with a pub/sub combined with queue model: it uses the concept of consumer group to divide the processing over a collection of consumer processes, and message can be broadcasted to multiple groups.
 * Zookeeper is used to keep cluster state, notify consumers and producers for new or failed broker
 * Stream processing is helpful for handling out-of-order data, *reprocessing* input as code changes, and performing stateful computations. It uses producer / consumer, stateful storage and consumer groups. It treats both past and future data the same way.
-* Consumer performs asynchronous pull to the connected broker via the subscription to a topic
+* Consumer performs asynchronous pull to the connected broker via the subscription to a topic.
 
 ###  Use cases
 * Aggregation of event coming from multiple producers.
@@ -48,6 +49,21 @@ Stream has the following capabilities:
 * An application's processor topology is scaled by breaking it into multiple tasks.
 * Tasks can then instantiate their own processor topology based on the assigned partitions
 
+When developing a record producer you need to assess the following:
+* what is the expected throughput to send events? Event size * average throughput combined with the expected latency help to compute buffer size.
+* can the producer batch events together to send them in batch over one send operation See
+* is there a risk for loosing communication? Tune the RETRIES_CONFIG and buffer size
+* assess once to exactly once delivery requirement. Look at idempotent producer.
+
+Then from the consumer point of view a set of items need to be addressed during design phase:
+* do you need to group consumers for parallel consumption of events
+* what is the processing done once the record is processed out of the topic. and how a record is supposed to be consumed.
+* how to persist consumer committed position (the last offset that has been stored securely)
+* assess if offsets need to be persisted outside of kafka - zookeeper, for example to keep offset and data together in a unique persistence layer, to implement a strong consume exactly once.
+* does record time sensitive, and it is possible that consumers fall behind, so when a consumer restarts he can bypass missed records
+* do the consumer needs to perform joins, aggregations between multiple partitions?
+
+
 ### High Availability in the context of Kubernetes deployment
 For any Kubernetes deployment real high availability is constrained by the application / workload deployed on it. The kubernetes platform supports high availability by having at least the following configuration:
 * At least three master nodes (always a odd number). One is active at master, the others are in standby.
@@ -58,17 +74,23 @@ For any Kubernetes deployment real high availability is constrained by the appli
 * Use Etcd cluster: See recommendations [from here](https://github.com/coreos/etcd/blob/master/Documentation/op-guide/clustering.md). The virtual IP manager assign virtual IP address to master and proxy nodes and monitors the health of the cluster. It leverages ETCD for storing information, so it is important that etcd is high available.  
 For IBM Cloud private HA installation see the [product documentation](https://www.ibm.com/support/knowledgecenter/en/SSBS6K_2.1.0.3/installing/custom_install.html#HA)
 
-Traditionally disaster recovery and high availability were always consider separated subject. Now active/active deployment where workloads are deployed in different data center, are more a common request. IBM Cloud Private is supporting [federation cross data centers](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Resiliency/Federating_ICP_clusters.md), but you need to ensure to have low latency network connections, but not all components of a solution is well suited for cross data center clustering.
+Traditionally disaster recovery and high availability were always consider separated subjects. Now active/active deployment where workloads are deployed in different data center, are more a common request. IBM Cloud Private is supporting [federation cross data centers](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Resiliency/Federating_ICP_clusters.md), but you need to ensure to have low latency network connections. Also not all deployment components of a solution are well suited for cross data center clustering.
+
+In Kafka context, the **Confluent** web site presents an interesting article for [kafka production deployment](https://docs.confluent.io/current/kafka/deployment.html). Their recommendation is to avoid cluster that span multiple data centers and specially long distance ones. But the semantic of the event processing may authorize some adaptations. For sure you need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble running at least three nodes.
+
+When deploying Kafka within kubernetes cluster the following diagram illustrates a minimum HA topology with three node for kafka and three for zookeeper:
+![](kafka-k8s.png)
 
 For configuring ICP for HA on VmWare read [this note](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Configuring_ICP_for_HA_on_VMware.md).
-From Confluent web site the [kafka production deployment considerations article](https://docs.confluent.io/current/kafka/deployment.html)  is a good source of information. From there the recommendation is to avoid cluster that span multiple data centers and specially long distance ones.
 
-You need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble, and will be able to communicate with each other.
+For Kafka streaming with stateful processing like joins, event aggregation and correlation coming from multiple partitions, it is not easy to achieve high availability cross cluster. In the strictest case every event must be processed by the streaming service exactly once. Which means:
+* producer emit data to different sites and be able to re-emit in case of failure. Brokers are known by producer via a list of hostname and port number.
+* Communication between zookeeper and cluster node are redundant and safe for data losses
+* Consumer ensures idempotence... They have to tolerate data duplication and manage data integrity in their persistence layer.
 
-For Kafka streaming and considering correlation of events coming from multiple sources, it is not easy to do
-
-So the following diagram proposes a HA topology for kafka in kubernetes.
-![](kafka-k8s.png)
+Within kafka's boundary, data will not be lost, when doing proper configuraiton but the heavy lifting is for the producer and consumer implementation to support cross cluster HA.
+For configuration you need to ensure:
+* partition replication for at least 3 replicas. Recall that in case of node failure,  coordination of partition re-assignments is provided with Apache ZooKeeper.
 
 ## Run Kafka in Docker
 ### On Linux
@@ -97,7 +119,7 @@ We have done shell scripts for you to do those command and test your local kafka
 * sendText.sh  Send a multiple lines message on mytopic topic- open this one in one terminal.
 * consumeMessage.sh  Connect to the topic to get messages. and this second in another terminal.
 
-### On MACOS with Docker
+### On MacOS with Docker
 Go to the `scripts/kafka` folder and start a 4 docker containers solution with Kafka, ZooKeeper, REST api, and schema registry using `docker-compose up` command. The images are from [confluent](https://github.com/confluentinc/)
 ```
 REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
@@ -107,8 +129,8 @@ confluentinc/cp-kafka              latest              c3a2f8363de5        6 day
 confluentinc/cp-zookeeper          latest              18b57832a1e2        6 days ago          562MB
 ```
 
-### On Mac with Docker Edge and Kubernetes
-This deployment is using the last Docker Edge version and is very efficient to do development.
+### On MacOS with Docker Edge and Kubernetes
+This deployment is using the last Docker Edge version which include kubernetes simple cluster.
 
 The folder scripts/kafka include a set of yaml files to configure zookeeper and kafka:
 ```
@@ -150,7 +172,10 @@ bash-4.4# cd /opt/kafka/bin
 bash-4.4# ./kafka-topics.sh --list --zookeeper 192.168.1.89:30181
  ./kafka-topics.sh --create --replication-factor 1 --partitions 1 --topic streams-wordcount-output --zookeeper 192.168.1.89:30181
 ```
-Kafka web site has an interesting use case to count words within a text, we will detail that in [this section].
+
+Kafka web site has an interesting use case to count words within a text, we will detail that in [this section](#example-to-run-the-word-count-application:).
+
+We are also detailing a full solution including Event producer, consumer and persistence to Cassandra in [this repository](https://github.com/ibm-cloud-architecture/refarch-asset-analytics)
 
 ## Install on ICP
 *(Tested on May 2018 on ibm-eventstreams-dev helm chart 0.1.1 of 5/24 on ICP 2.1.0.3)*
@@ -175,7 +200,7 @@ The service to expose capabilities to external world via nodePort type:
 * REST api port 30031
 * stream proxy port bootstrap: 31348, broker 0: 32489...
 
-To get access to the Admin console by using the IP address of the master pr proxy node and the port number of the service, which you can get using the kubectl get service information command like:
+To get access to the Admin console by using the IP address of the master proxy node and the port number of the service, which you can get using the kubectl get service information command like:
 ```
 kubectl get svc -n greencompute "greenkafka-ibm-eventstreams-admin-ui-proxy-svc" -o 'jsonpath={.spec.ports[?(@.name=="admin-ui-https")].nodePort}'
 
@@ -187,7 +212,7 @@ Use the Event Stream Toolbox to download a getting started application. One exam
 
 The application runs in Liberty at the URL: http://localhost:9080/GreenKafkaTest/ and delivers a nice simple interface   
 ![](start-home.png)
-to test the producer and consumer of test message:
+to test the producer and consumer of text message:
 
 ![](app-producer.png)  
 
@@ -257,13 +282,26 @@ bx es topics
 bx es topic-delete streams-plaintext-input
 ```
 
-### Troubleshouting
-For ICP see this centralized [note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/icp/troubleshooting.md)
+### Troubleshooting
+#### For ICP see this centralized [note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/icp/troubleshooting.md)
+
+#### For Kafka:
+Assess the list of Topics
+```
+# remote connect to the kafka pod and open a bash:
+$ kubectl exec -ti kafka-786975b994-9m8n2 bash
+bash-4.4# ./kafka-topics.sh  --zookeeper 192.168.1.89:30181 --list
+```
+Purge a topic with bad message: delete and recreate it
+```
+./kafka-topics.sh  --zookeeper 192.168.1.89:30181 --delete --topic test-topic
+./kafka-topics.sh  --zookeeper 192.168.1.89:30181 --create --replication-factor 1 --partitions 1 --topic test-topic
+```
 
 ## Streaming app
 The Java code in the project: https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/asset-event-producer includes examples of stateless consumers, a text producer, and some example of stateful operations. In general code for processing event does the following:
 * Set a properties object to specify which brokers to connect to and what kind of serialization to use.
-* Define a stream client: if you want stream of record use KStream, if you want a changelog with the last value of a given key use KTable (Example is to keep a user profile with userid as key)
+* Define a stream client: if you want stream of record use KStream, if you want a changelog with the last value of a given key use KTable (Example of using KTable is to keep a user profile with userid as key)
 * Create a topology of input source and sink target and action to perform on the records
 * Start the stream client to consume records
 
@@ -324,10 +362,11 @@ mvn exec:java -Dexec.mainClass=ibm.cte.kafka.play.WordCount
 Outputs of the WordCount application is actually a continuous stream of updates, where each output record is an updated count of a single word. A KTable is counting the occurrence of word, and a KStream send the output message with updated count.
 
 
-## compendium
-* [Stream API](https://kafka.apache.org/11/documentation/streams/)
+## Compendium
+* [Start by reading kafka introduction](https://kafka.apache.org/intro/)
+* [Develop Stream Application using Kafka](https://kafka.apache.org/11/documentation/streams/)
 * [Validating the Stream deployment](https://developer.ibm.com/messaging/event-streams/docs/validating-the-deployment/)
-* [IBM Event Streams based on Kafka](https://developer.ibm.com/messaging/event-streams/)
+* [IBM Event Streams product based on Kafka delivered in ICP catalog](https://developer.ibm.com/messaging/event-streams/)
 * [Developer works article](https://developer.ibm.com/messaging/event-streams/docs/learn-about-kafka/)
 * [Install Event Streams on ICP](https://developer.ibm.com/messaging/event-streams/docs/install-guide/)
-* [Spark and Kafka with direct stream, persistence considerations](http://aseigneurin.github.io/2016/05/07/spark-kafka-achieving-zero-data-loss.html)
+* [Spark and Kafka with direct stream, and persistence considerations and best practices](http://aseigneurin.github.io/2016/05/07/spark-kafka-achieving-zero-data-loss.html)

@@ -7,7 +7,7 @@
 
 ![](kafka-hl-view.png)
 
-The diagram above shows brokers allocated on three servers, partitions used by producer and consumers and data replication. Zookeeper runs also in cluster. Before going into the detail of this architecture we want to summarize the key concepts.
+The diagram above shows brokers allocated on three servers, partitions used by producer and consumers and data replication. Zookeeper runs also in cluster. Before going into the details of this architecture we want to summarize the key concepts.
 
 ## Key concepts
 * Kafka runs as a cluster of one or more **broker** servers that can, in theory, span multiple data centers.
@@ -31,14 +31,22 @@ The diagram above shows brokers allocated on three servers, partitions used by p
 
 
 ### Kafka Stream Details
-Stream has the following capabilities:
-* Continuous real time flow of records
+I recommend reading this excellent introduction from Jay Kreps @confluent: [Kafka stream made simple](https://www.confluent.io/blog/introducing-kafka-streams-stream-processing-made-simple/) to get familiar of why Kafka stream.
+
+Kafka Stream has the following capabilities:
+* embedded library for your application to use
+* integrate tables of state with streams of events
+* consume continuous real time flow of records and publish new flow
 * It supports exactly-once processing semantics to guarantee that each record will be processed once and only once even when there is a failure
 * Stream APIs transform, aggregate and enrich data, per record with milli second latency, from one topic to another one.
 * Support stateful and windowing operations by processing one record at a time.
 * Can be integrated in java application and micro service. No need for separate processing cluster. It is a Java API. Stream app is done outside of the broker code!.
-* Elastic, highly scalable, fault tolerance
-* Deploy to container
+* Elastic, highly scalable, fault tolerance, it can recover from failure
+* Deploy as container to kubernetes or other orchestration platform
+
+From a component view kafka streaming application looks like:
+
+Kafka stream should be your future platform for asynchronous communication between your microservices to simplify interdependencies between them.
 
 ### Architecture
 
@@ -83,12 +91,12 @@ When deploying Kafka within kubernetes cluster the following diagram illustrates
 
 For configuring ICP for HA on VmWare read [this note](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Configuring_ICP_for_HA_on_VMware.md).
 
-For Kafka streaming with stateful processing like joins, event aggregation and correlation coming from multiple partitions, it is not easy to achieve high availability cross cluster. In the strictest case every event must be processed by the streaming service exactly once. Which means:
+For Kafka streaming with stateful processing like joins, event aggregation and correlation coming from multiple partitions, it is not easy to achieve high availability cross clusters: in the strictest case every event must be processed by the streaming service exactly once. Which means:
 * producer emit data to different sites and be able to re-emit in case of failure. Brokers are known by producer via a list of hostname and port number.
 * Communication between zookeeper and cluster node are redundant and safe for data losses
 * Consumer ensures idempotence... They have to tolerate data duplication and manage data integrity in their persistence layer.
 
-Within kafka's boundary, data will not be lost, when doing proper configuraiton but the heavy lifting is for the producer and consumer implementation to support cross cluster HA.
+Within kafka's boundary, data will not be lost, when doing proper configuration but the heavy lifting is for the producer and consumer implementation to support cross cluster HA.
 For configuration you need to ensure:
 * partition replication for at least 3 replicas. Recall that in case of node failure,  coordination of partition re-assignments is provided with Apache ZooKeeper.
 
@@ -153,7 +161,7 @@ $ kubectl create -f kafka-deployment.yaml
 $ kubectl create -f kafka-service.yaml
 ```
 
-So now we can test with a tool like: kafkacat, that you can install with `brew install kafkacat`. To consume message use a terminal window and listen to the `test-topic` with `kafkacat -C -b 192.168.1.89:30092 -t test-topic`. To produce text message use a command like:
+So now we can test with a tool like: `kafkacat`, that you can install with `brew install kafkacat`. To consume message use a terminal window and listen to the `test-topic` with `kafkacat -C -b 192.168.1.89:30092 -t test-topic`. To produce text message use a command like:
 ```
  echo "I'm a super interesting message" | kafkacat -P -b 192.168.1.89:30092 -t test-topic
 ```
@@ -219,7 +227,9 @@ to test the producer and consumer of text message:
 
 ![](app-consumer.png)  
 
-## Verifying installation for kafka running in ICP
+The following project: [asset analytics](https://github.com/ibm-cloud-architecture/refarch-asset-analytics) goes deeper in stream application implementation.
+
+## Verifying ICP Kafka installation
 Once connected to the cluster with kubectl with commands like:
 ```
 kubectl config set-cluster cluster.local --server=https://172.16.40.130:8001 --insecure-skip-tls-verify=true
@@ -250,7 +260,7 @@ bash-3.4# cd /opt/kafka/bin
 ```
 Now you have access to the same tools as above. The most important thing is to get the hostname and port number of the zookeeper server. To do so use the kubectl command:
 ```
-$ kubectl describe pods greenkafka-ibm-eventstreams-zookeeper-sts-0
+$ kubectl describe pods greenkafka-ibm-eventstreams-zookeeper-sts-0 --namespace greencompute
 ```
 In the long result get the client port ( ZK_CLIENT_PORT: 2181) information and IP address (IP: 192.168.76.235). Using these information, in the bash in the broker server we can do the following command to get the topics configured.
 
@@ -258,8 +268,6 @@ In the long result get the client port ( ZK_CLIENT_PORT: 2181) information and I
 ./kafka-topics.sh --list -zookeeper  192.168.76.235:2181
 ```
 
-
-Based on the generated code we tune the Word Count application from Kafka web site to produce document from external java producer to Kafka broker running in ICP and with producer outside of ICP. See [below section](#streaming-app)
 
 ### Using the Event Stream CLI
 If not done before you can install the Event Stream CLI on top of ICP CLI by first downloading it from the Event Stream console and then running this command:
@@ -330,7 +338,6 @@ A stateful operator uses the streaming Domain Specific Language, and is used for
 * KTable is an abstraction of a changelog stream from a primary-keyed table.
 
 
-
 ### Example to run the Word Count application:
 1. Be sure to create the needed different topics once the kafka broker is started (test-topic, streams-wordcount-output):
 ```
@@ -363,10 +370,18 @@ Outputs of the WordCount application is actually a continuous stream of updates,
 
 
 ## Compendium
+
+
+Processing Tweets with Kafka Streams
+Kafka Papers and Presentations Wiki
+Applying Kafka Streams for internal message delivery pipeline
+Table-Stream Dualism Video
 * [Start by reading kafka introduction](https://kafka.apache.org/intro/)
+* [Another introduction from the main contributors: Confluent](http://www.confluent.io/blog/introducing-kafka-streams-stream-processing-made-simple)
 * [Develop Stream Application using Kafka](https://kafka.apache.org/11/documentation/streams/)
 * [Validating the Stream deployment](https://developer.ibm.com/messaging/event-streams/docs/validating-the-deployment/)
 * [IBM Event Streams product based on Kafka delivered in ICP catalog](https://developer.ibm.com/messaging/event-streams/)
-* [Developer works article](https://developer.ibm.com/messaging/event-streams/docs/learn-about-kafka/)
+* [IBM Developer works article](https://developer.ibm.com/messaging/event-streams/docs/learn-about-kafka/)
 * [Install Event Streams on ICP](https://developer.ibm.com/messaging/event-streams/docs/install-guide/)
 * [Spark and Kafka with direct stream, and persistence considerations and best practices](http://aseigneurin.github.io/2016/05/07/spark-kafka-achieving-zero-data-loss.html)
+* [Example in scala for processing Tweets with Kafka Streams](https://www.madewithtea.com/processing-tweets-with-kafka-streams.html)

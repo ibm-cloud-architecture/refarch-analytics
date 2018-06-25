@@ -84,21 +84,31 @@ For IBM Cloud private HA installation see the [product documentation](https://ww
 
 Traditionally disaster recovery and high availability were always consider separated subjects. Now active/active deployment where workloads are deployed in different data center, are more a common request. IBM Cloud Private is supporting [federation cross data centers](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Resiliency/Federating_ICP_clusters.md), but you need to ensure to have low latency network connections. Also not all deployment components of a solution are well suited for cross data center clustering.
 
-In Kafka context, the **Confluent** web site presents an interesting article for [kafka production deployment](https://docs.confluent.io/current/kafka/deployment.html). Their recommendation is to avoid cluster that span multiple data centers and specially long distance ones. But the semantic of the event processing may authorize some adaptations. For sure you need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble running at least three nodes.
+In Kafka context, the **Confluent** web site presents an interesting article for [kafka production deployment](https://docs.confluent.io/current/kafka/deployment.html). One of their recommendation is to avoid cluster that span multiple data centers and specially long distance ones. But the semantic of the event processing may authorize some adaptations. For sure you need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble running at least three nodes.
 
 When deploying Kafka within kubernetes cluster the following diagram illustrates a minimum HA topology with three node for kafka and three for zookeeper:
 ![](kafka-k8s.png)
+
+This schema illustrates the recommendation to separate Zookeeper from Kafka nodes for failover purpose as zookeeper keeps state of the kafka cluster. Kafka uses the log.dirs property to configure the driver to persist logs. So you need to define multiple volumes/ drives to support log.dirs.
+
+Zookeeper should not be used by other systems.
 
 For configuring ICP for HA on VmWare read [this note](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Configuring_ICP_for_HA_on_VMware.md).
 
 For Kafka streaming with stateful processing like joins, event aggregation and correlation coming from multiple partitions, it is not easy to achieve high availability cross clusters: in the strictest case every event must be processed by the streaming service exactly once. Which means:
 * producer emit data to different sites and be able to re-emit in case of failure. Brokers are known by producer via a list of hostname and port number.
-* Communication between zookeeper and cluster node are redundant and safe for data losses
-* Consumer ensures idempotence... They have to tolerate data duplication and manage data integrity in their persistence layer.
+* communications between zookeeper and cluster node are redundant and safe for data losses
+* consumer ensures idempotence... They have to tolerate data duplication and manage data integrity in their persistence layer.
 
-Within kafka's boundary, data will not be lost, when doing proper configuration but the heavy lifting is for the producer and consumer implementation to support cross cluster HA.
-For configuration you need to ensure:
-* partition replication for at least 3 replicas. Recall that in case of node failure,  coordination of partition re-assignments is provided with Apache ZooKeeper.
+Within kafka's boundary, data will not be lost, when doing proper configuration, also to support high availability the complexity moves to the producer and the consumer implementation .
+
+Kafka configuration is an art and you need to tune the parameters by use case:
+* partition replication for at least 3 replicas. Recall that in case of node failure,  coordination of partition re-assignments is provided with ZooKeeper.
+* end to end latency needs to be measured from producer (when a message is sent) to consumer when it is read. A consumer is able to get a message when the broker finishes to replicate to all in-synch replicas.
+* use the producer buffering capability to pace the message to the broker. Can use memory or time based threshold.
+* Define the number of partitions to drive consumer parallelism. More consumers running in parallel the higher is the throughtput.
+* Assess the retention hours to control when old messages in topic can be deleted
+* Control the maximum message size the server can receive.    
 
 ## Run Kafka in Docker
 ### On Linux

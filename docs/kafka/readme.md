@@ -18,11 +18,16 @@ The diagram above shows brokers allocated on three servers, partitions used by p
 * Producers publish data records to topic and consumers subscribe to topics. When a record is produced without specifying a partition, a partition will be chosen using a hash of the key. If the record did not provide a timestamp, the producer will stamp the record with its current time (creation time or log append time). They hold a pool of buffer to keep records not yet transmitted to the server.
 * Each partition is replicated across a configurable number of servers for fault tolerance. The number of partition will depend on the number of consumer, the traffic pattern
 * Each partitioned message has a unique sequence id called **offset** ("abcde, ab, a ..." are offsets).
-* Offsets are maintained in Zookeeper, so consumers can read next message (or from a specific offset) correctly even during broker server outrages.
+* When a consumer reads a topic, it actually reads data from all of the partitions. As a consumer reads data from a partition, it advances its offset.
+* Offsets are maintained in Zookeeper or in Kafka, so consumers can read next message (or from a specific offset) correctly even during broker server outrages. We are detailing this in the [implementation here](https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/asset-consumer)
 * Kafka uses topics with a pub/sub combined with queue model: it uses the concept of consumer group to divide the processing over a collection of consumer processes, and message can be broadcasted to multiple groups.
 * Zookeeper is used to keep cluster state, notify consumers and producers for new or failed broker
 * Stream processing is helpful for handling out-of-order data, *reprocessing* input as code changes, and performing stateful computations. It uses producer / consumer, stateful storage and consumer groups. It treats both past and future data the same way.
 * Consumer performs asynchronous pull to the connected broker via the subscription to a topic.
+
+The figure below illustrates a topic having multiple partitions replicated within the broker cluster:
+![](./kafka-topic-partition.png)  
+
 
 ###  Use cases
 * Aggregation of event coming from multiple producers.
@@ -84,14 +89,37 @@ For IBM Cloud private HA installation see the [product documentation](https://ww
 
 Traditionally disaster recovery and high availability were always consider separated subjects. Now active/active deployment where workloads are deployed in different data center, are more a common request. IBM Cloud Private is supporting [federation cross data centers](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Resiliency/Federating_ICP_clusters.md), but you need to ensure to have low latency network connections. Also not all deployment components of a solution are well suited for cross data center clustering.
 
-In Kafka context, the **Confluent** web site presents an interesting article for [kafka production deployment](https://docs.confluent.io/current/kafka/deployment.html). One of their recommendation is to avoid cluster that span multiple data centers and specially long distance ones. But the semantic of the event processing may authorize some adaptations. For sure you need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble running at least three nodes.
+In Kafka context, the **Confluent** web site presents an interesting article for [kafka production deployment](https://docs.confluent.io/current/kafka/deployment.html). One of their recommendation is to avoid cluster that span multiple data centers and specially long distance ones.
+But the semantic of the event processing may authorize some adaptations. For sure you need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble running at least three nodes.
 
-When deploying Kafka within kubernetes cluster the following diagram illustrates a minimum HA topology with three node for kafka and three for zookeeper:
+When deploying Kafka within kubernetes cluster the following diagram illustrates a minimum HA topology with three nodes for kafka and three for zookeeper:
 ![](kafka-k8s.png)
 
-This schema illustrates the recommendation to separate Zookeeper from Kafka nodes for failover purpose as zookeeper keeps state of the kafka cluster. Kafka uses the log.dirs property to configure the driver to persist logs. So you need to define multiple volumes/ drives to support log.dirs.
+This schema illustrates the recommendation to separate Zookeeper from Kafka nodes for failover purpose as zookeeper keeps state of the kafka cluster. We use [anti-affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity) to ensure they are scheduled onto separate worker nodes that the ones used by zookeeper. It uses the labels on pods with a rule like: kafka pod should not run on same node as zookeeper pods.  Here is an example of such spec:
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: with-pod-affinity
+spec:
+  affinity:
+    podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            labelSelector:
+            matchExpressions:
+            - key: name
+              operator: In
+              values:
+              - zookeeper
+          topologyKey: kubernetes.io/hostname
+```
+We recommend doing the [running zookeeper in k8s tutorial](https://kubernetes.io/docs/tutorials/stateful-application/zookeeper) for understanding such configuration.
+
+Kafka uses the log.dirs property to configure the driver to persist logs. So you need to define multiple volumes/ drives to support log.dirs.
 
 Zookeeper should not be used by other systems.
+
+In a multi-cluster configuration being used for disaster recovery purposes, messages sent between clusters will have different offsets in the two clusters. It is usual to use timestamps for position information when restarting applications for recovery after a disaster. We are addressing offset management in the consumer project [here]().
 
 For configuring ICP for HA on VmWare read [this note](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Configuring_ICP_for_HA_on_VMware.md).
 
@@ -204,16 +232,19 @@ You need to decide if persistence should be enabled for ZooKeeper and Kafka brok
 For the release name take care to do not use a too long name as there is an issue on name length limited to 63 characters.
 
 The screen shots below presents the release deployment results:
-![](helm-rel01.png)
-This figure above illustrates the following:
+![](helm-rel01.png)  
+
+The figure above illustrates the following:
 * ConfigMap for UI, kafka proxy, kafka REST api proxy.
 * The three deployment for each major components: UI, REST and controller.
 
+The figure below is for roles, rolebinding and secret as part of the Role Based Access Control.
 ![](helm-rel02.png)
-The roles, rolebinding and secret as part of the Role Based Access Control.
 
+and the services for zookeeper, kafka and Event Stream REST api and user interface:  
 ![](helm-rel03.png)
-The service to expose capabilities to external world via nodePort type:
+
+The services expose capabilities to external world via nodePort type:
 * admin console port 32492 on the k8s proxy IP address
 * REST api port 30031
 * stream proxy port bootstrap: 31348, broker 0: 32489...
@@ -242,11 +273,11 @@ The following project: [asset analytics](https://github.com/ibm-cloud-architectu
 ## Verifying ICP Kafka installation
 Once connected to the cluster with kubectl with commands like:
 ```
-kubectl config set-cluster cluster.local --server=https://172.16.40.130:8001 --insecure-skip-tls-verify=true
-kubectl config set-context cluster.local-context --cluster=cluster.local
+kubectl config set-cluster gr33n-cluster.icp --server=https://172.16.40.130:8001 --insecure-skip-tls-verify=true
+kubectl config set-context cluster.local-context --cluster=gr33n-cluster.icp
 kubectl config set-credentials admin --token=e.......
-kubectl config set-context cluster.local-context --user=admin --namespace=greencompute
-kubectl config use-context cluster.local-context
+kubectl config set-context cluster.gr33n --user=admin --namespace=greencompute
+kubectl config use-context cluster.gr33n
 ```
 Get the list of pods for the namespace you used to install kafka / event streams:
 ```
@@ -301,7 +332,7 @@ bx es topic-delete streams-plaintext-input
 ```
 
 ### Troubleshooting
-#### For ICP see this centralized [note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/icp/troubleshooting.md)
+#### For ICP see this centralized note [note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/icp/troubleshooting.md)
 
 #### For Kafka:
 Assess the list of Topics
@@ -323,7 +354,7 @@ The Java code in the project: https://github.com/ibm-cloud-architecture/refarch-
 * Create a topology of input source and sink target and action to perform on the records
 * Start the stream client to consume records
 
-A stateful operator uses the streaming Domain Specific Language, and is used for aggregation, join and time window operators. Stateful transformations require a state store associated with the stream processor. The code below comes from Kafka examples and is counting word occurence in text
+A stateful operator uses the streaming Domain Specific Language, and is used for aggregation, join and time window operators. Stateful transformations require a state store associated with the stream processor. The code below comes from Kafka examples and is counting word occurrence in text
 ```
     final StreamsBuilder builder = new StreamsBuilder();
     final Pattern pattern = Pattern.compile("\\W+");
@@ -380,7 +411,6 @@ Outputs of the WordCount application is actually a continuous stream of updates,
 
 
 ## Compendium
-
 
 Processing Tweets with Kafka Streams
 Kafka Papers and Presentations Wiki

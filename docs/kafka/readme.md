@@ -224,10 +224,20 @@ Kafka web site has an interesting use case to count words within a text, we will
 We are also detailing a full solution including Event producer, consumer and persistence to Cassandra in [this repository](https://github.com/ibm-cloud-architecture/refarch-asset-analytics)
 
 ## Install on ICP
-*(Tested on May 2018 on ibm-eventstreams-dev helm chart 0.1.1 of 5/24 on ICP 2.1.0.3)*
+*(Tested on June 2018 on ibm-eventstreams-dev helm chart 0.1.2 on ICP 2.1.0.3)*
 
 You can use the `ibm-eventstreams-dev` Helm chart from ICP catalog the instructions can be found [here](https://developer.ibm.com/messaging/event-streams/docs/install-guide/).  
 You need to decide if persistence should be enabled for ZooKeeper and Kafka broker. Allocate one PV per broker and ZooKeeper server or use dynamic provisioning but ensure expected volumes are present.
+
+The following parameters were changed from default settings:
+ | Parameter    | Description | Value    |
+ | :------------- | :------------- | :------------- |
+ | kafka.autoCreateTopicsEnable     | Enable auto-creation of topics       | true |
+ | persistence.enabled | enable persistent storage for the Kafka brokers | true |
+ | persistence.useDynamicProvisioning | dynamically create persistent volume claims | true |
+ | zookeeper.persistence.enabled | use persistent storage for the ZooKeeper nodes | true |
+  | zookeeper.persistence.useDynamicProvisioning | dynamically create persistent volume claims for the ZooKeeper nodes | true |
+  | proxy.externalAccessEnabled | allow external access to Kafka from outside the Kubernetes cluster | true |
 
 For the release name take care to do not use a too long name as there is an issue on name length limited to 63 characters.
 
@@ -251,11 +261,12 @@ The services expose capabilities to external world via nodePort type:
 
 To get access to the Admin console by using the IP address of the master proxy node and the port number of the service, which you can get using the kubectl get service information command like:
 ```
-kubectl get svc -n greencompute "greenkafka-ibm-eventstreams-admin-ui-proxy-svc" -o 'jsonpath={.spec.ports[?(@.name=="admin-ui-https")].nodePort}'
+kubectl get svc -n greencompute "greenkafka-ibm-es-admin-ui-proxy-svc" -o 'jsonpath={.spec.ports[?(@.name=="admin-ui-https")].nodePort}'
 
+kubectl cluster-info | grep "catalog" | awk 'match($0, /([0-9]{1,3}\.){3}[0-9]{1,3}/) { print substr( $0, RSTART, RLENGTH )}'
 ```
 
-![](ES-admin-console.png)
+![](event-stream-admin.png)
 
 Use the Event Stream Toolbox to download a getting started application. One example of the generated app is in the IBMEventStreams_GreenKafkaTest folder, and a description on how to run it is in the [readme](../../IBMEventStreams_GreenKafkaTest/README.md)
 

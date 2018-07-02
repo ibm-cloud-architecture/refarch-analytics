@@ -1,13 +1,14 @@
 # Apache Kafka
-[Kafka](https://kafka.apache.org/) is a distributed streaming platform. It has three key capabilities:
+[Kafka](https://kafka.apache.org/) is a distributed streaming platform. It has a set of key capabilities:
 * Publish and subscribe streams of records, similar to a message queue or enterprise messaging system.
+* Atomic broadcast, send a record once, every subscriber gets it once.
 * Store streams of data records on disk and replicate within the cluster for fault-tolerance.
 * It is built on top of the ZooKeeper synchronization service to keep topic, partition and offsets states
 * Process streams of records as they occur.
 
 ![](kafka-hl-view.png)
 
-The diagram above shows brokers allocated on three servers, partitions used by producer and consumers and data replication. Zookeeper runs also in cluster. Before going into the details of this architecture we want to summarize the key concepts.
+The diagram above shows brokers allocated on three servers, partitions used by producer and consumers and data replication. Zookeeper also runs in cluster. Before going into the details of this architecture we want to summarize the key concepts.
 
 ## Key concepts
 * Kafka runs as a cluster of one or more **broker** servers that can, in theory, span multiple data centers.
@@ -29,13 +30,13 @@ The figure below illustrates a topic having multiple partitions replicated withi
 ![](./kafka-topic-partition.png)  
 
 
-###  Use cases
+##  Use cases
 * Aggregation of event coming from multiple producers.
 * Monitor distributed applications to produce centralized feed of operational data.
 * Logs collector from multiple services
 
 
-### Kafka Stream Details
+## Kafka Stream Details
 I recommend reading this excellent introduction from Jay Kreps @confluent: [Kafka stream made simple](https://www.confluent.io/blog/introducing-kafka-streams-stream-processing-made-simple/) to get familiar of why Kafka stream.
 
 Kafka Stream has the following capabilities:
@@ -53,15 +54,23 @@ From a component view kafka streaming application looks like:
 
 Kafka stream should be your future platform for asynchronous communication between your microservices to simplify interdependencies between them.
 
-### Architecture
+## Architecture
 
 ![](kafka-stream-arch.png)
 
-* Kafka Streams partitions data for processing it. Partition enables data locality, elasticity, scalability, high performance, and fault tolerance
+* Kafka Streams partitions data for processing it. Partition enables data locality, elasticity, scalability, high performance, parallelism, and fault tolerance
 * The keys of data records determine the partitioning of data in both Kafka and Kafka Streams
 * An application's processor topology is scaled by breaking it into multiple tasks.
 * Tasks can then instantiate their own processor topology based on the assigned partitions
 
+See [this article](https://docs.confluent.io/current/streams/architecture.html) for architecture presentation.
+
+When you want to deploy solution that spreads over multiple region to support global streaming, you need to address at least three challenges:
+* How do you make dat available to applications across multiple data centers?
+* How to serve data closer to the geography?
+* How to be compliant on regulation, like GDPR?
+
+### Solution considerations
 When developing a record producer you need to assess the following:
 * what is the expected throughput to send events? Event size * average throughput combined with the expected latency help to compute buffer size.
 * can the producer batch events together to send them in batch over one send operation See
@@ -72,7 +81,7 @@ Then from the consumer point of view a set of items need to be addressed during 
 * do you need to group consumers for parallel consumption of events
 * what is the processing done once the record is processed out of the topic. and how a record is supposed to be consumed.
 * how to persist consumer committed position (the last offset that has been stored securely)
-* assess if offsets need to be persisted outside of kafka - zookeeper, for example to keep offset and data together in a unique persistence layer, to implement a strong consume exactly once.
+* assess if offsets need to be persisted outside of kafka. From version 0.9 offset management is more efficient, and synchronous or asynchronous operations can be done from the consumer code. We have started some Java code example in [this project](https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/asset-consumer)
 * does record time sensitive, and it is possible that consumers fall behind, so when a consumer restarts he can bypass missed records
 * do the consumer needs to perform joins, aggregations between multiple partitions?
 
@@ -89,10 +98,10 @@ For IBM Cloud private HA installation see the [product documentation](https://ww
 
 Traditionally disaster recovery and high availability were always consider separated subjects. Now active/active deployment where workloads are deployed in different data center, are more a common request. IBM Cloud Private is supporting [federation cross data centers](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Resiliency/Federating_ICP_clusters.md), but you need to ensure to have low latency network connections. Also not all deployment components of a solution are well suited for cross data center clustering.
 
-In Kafka context, the **Confluent** web site presents an interesting article for [kafka production deployment](https://docs.confluent.io/current/kafka/deployment.html). One of their recommendation is to avoid cluster that span multiple data centers and specially long distance ones.
-But the semantic of the event processing may authorize some adaptations. For sure you need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble running at least three nodes.
+In Kafka context, the **Confluent** web site presents an interesting article for [kafka production deployment](https://docs.confluent.io/current/kafka/deployment.html). One of their recommendation is to avoid cluster that spans multiple data centers and specially long distance ones.
+But the semantic of the event processing may authorize some adaptations. For sure you need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble running at least three nodes (five nodes for production deployment, so that you can tolerate the loss of one server during the planned maintenance of another).
 
-When deploying Kafka within kubernetes cluster the following diagram illustrates a minimum HA topology with three nodes for kafka and three for zookeeper:
+When deploying Kafka within kubernetes cluster the following diagram illustrates a minimum HA topology with three nodes for kafka and five for zookeeper:
 ![](kafka-k8s.png)
 
 This schema illustrates the recommendation to separate Zookeeper from Kafka nodes for failover purpose as zookeeper keeps state of the kafka cluster. We use [anti-affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity) to ensure they are scheduled onto separate worker nodes that the ones used by zookeeper. It uses the labels on pods with a rule like: kafka pod should not run on same node as zookeeper pods.  Here is an example of such spec:
@@ -114,10 +123,11 @@ spec:
           topologyKey: kubernetes.io/hostname
 ```
 We recommend doing the [running zookeeper in k8s tutorial](https://kubernetes.io/docs/tutorials/stateful-application/zookeeper) for understanding such configuration.
+Provision a **fast storage class** for persistence volume.
 
 Kafka uses the log.dirs property to configure the driver to persist logs. So you need to define multiple volumes/ drives to support log.dirs.
 
-Zookeeper should not be used by other systems.
+Zookeeper should not be used by other application deployed in k8s cluster, it has to be dedicated for one kafka cluster only..
 
 In a multi-cluster configuration being used for disaster recovery purposes, messages sent between clusters will have different offsets in the two clusters. It is usual to use timestamps for position information when restarting applications for recovery after a disaster. We are addressing offset management in the consumer project [here]().
 
@@ -128,7 +138,7 @@ For Kafka streaming with stateful processing like joins, event aggregation and c
 * communications between zookeeper and cluster node are redundant and safe for data losses
 * consumer ensures idempotence... They have to tolerate data duplication and manage data integrity in their persistence layer.
 
-Within kafka's boundary, data will not be lost, when doing proper configuration, also to support high availability the complexity moves to the producer and the consumer implementation .
+Within kafka's boundary, data will not be lost, when doing proper configuration, also to support high availability the complexity moves to the producer and the consumer implementation.
 
 Kafka configuration is an art and you need to tune the parameters by use case:
 * partition replication for at least 3 replicas. Recall that in case of node failure,  coordination of partition re-assignments is provided with ZooKeeper.
@@ -229,7 +239,8 @@ We are also detailing a full solution including Event producer, consumer and per
 You can use the `ibm-eventstreams-dev` Helm chart from ICP catalog the instructions can be found [here](https://developer.ibm.com/messaging/event-streams/docs/install-guide/).  
 You need to decide if persistence should be enabled for ZooKeeper and Kafka broker. Allocate one PV per broker and ZooKeeper server or use dynamic provisioning but ensure expected volumes are present.
 
-The following parameters were changed from default settings:
+The following parameters were changed from default settings:  
+
  | Parameter    | Description | Value    |
  | :------------- | :------------- | :------------- |
  | kafka.autoCreateTopicsEnable     | Enable auto-creation of topics       | true |
@@ -238,6 +249,7 @@ The following parameters were changed from default settings:
  | zookeeper.persistence.enabled | use persistent storage for the ZooKeeper nodes | true |
   | zookeeper.persistence.useDynamicProvisioning | dynamically create persistent volume claims for the ZooKeeper nodes | true |
   | proxy.externalAccessEnabled | allow external access to Kafka from outside the Kubernetes cluster | true |
+
 
 For the release name take care to do not use a too long name as there is an issue on name length limited to 63 characters.
 
@@ -343,7 +355,7 @@ bx es topic-delete streams-plaintext-input
 ```
 
 ### Troubleshooting
-#### For ICP see this centralized note [note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/icp/troubleshooting.md)
+For ICP troubleshooting see this centralized [note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/icp/troubleshooting.md)
 
 #### For Kafka:
 Assess the list of Topics
@@ -431,6 +443,7 @@ Table-Stream Dualism Video
 * [Another introduction from the main contributors: Confluent](http://www.confluent.io/blog/introducing-kafka-streams-stream-processing-made-simple)
 * [Develop Stream Application using Kafka](https://kafka.apache.org/11/documentation/streams/)
 * [Validating the Stream deployment](https://developer.ibm.com/messaging/event-streams/docs/validating-the-deployment/)
+* [Kafka on kubernetes using stateful sets](https://github.com/kubernetes/contrib/tree/master/statefulsets/kafka)
 * [IBM Event Streams product based on Kafka delivered in ICP catalog](https://developer.ibm.com/messaging/event-streams/)
 * [IBM Developer works article](https://developer.ibm.com/messaging/event-streams/docs/learn-about-kafka/)
 * [Install Event Streams on ICP](https://developer.ibm.com/messaging/event-streams/docs/install-guide/)

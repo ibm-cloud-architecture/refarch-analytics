@@ -71,12 +71,27 @@ When you want to deploy solution that spreads over multiple region to support gl
 * How to be compliant on regulation, like GDPR?
 
 ### Solution considerations
+There are a set of design considerations to assess for each kafka solution:
+#### Topics
+Performance is more a function of number of partition than topics. Expect that each topic has at least one partition. When considering latency you should aim for limiting to hundreds of topic-partition per broker node.
+
+The approach to use one topic per data type is natural and will work. But when addressing microservice to microservice communication it is less relevant to use this pattern.
+The important requirement to consider is the sequencing or event order. When event order is very important then use a unique partition, and use the entity unique identifier as key. Ordering is not preserved across partitions.
+
+When dealing with entity, independent entities may be in separate topics, when strongly related one may stay together.
+
+With Kafka stream state store or KTable, you should separate the changelog topic from the others.
+
+#### Producer
 When developing a record producer you need to assess the following:
 * what is the expected throughput to send events? Event size * average throughput combined with the expected latency help to compute buffer size.
 * can the producer batch events together to send them in batch over one send operation See
 * is there a risk for loosing communication? Tune the RETRIES_CONFIG and buffer size
 * assess once to exactly once delivery requirement. Look at idempotent producer.
 
+See related port [here](https://www.confluent.io/blog/put-several-event-types-kafka-topic/)
+
+#### Consumer
 Then from the consumer point of view a set of items need to be addressed during design phase:
 * do you need to group consumers for parallel consumption of events
 * what is the processing done once the record is processed out of the topic. and how a record is supposed to be consumed.

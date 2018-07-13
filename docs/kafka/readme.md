@@ -34,6 +34,7 @@ The figure below illustrates a topic having multiple partitions replicated withi
 * Aggregation of event coming from multiple producers.
 * Monitor distributed applications to produce centralized feed of operational data.
 * Logs collector from multiple services
+* Manage loosely coupled communication between microservices. (See [this note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/service-mesh.md#asynchronous-loosely-coupled-solution-using-events) for service mesh solution using event platform)
 
 
 ## Kafka Stream Details

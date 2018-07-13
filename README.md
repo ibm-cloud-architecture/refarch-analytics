@@ -69,9 +69,9 @@ The system context may look like the following figure:
 The proposed allocation of the components of this system context is still open, but we want to represent hybrid deployment and using IBM Cloud private to leverage cloud development practices for any new micro services and web application deployment.
 
 # Repositories
-The following repositories are part of the solution
-* [Customer management micro service](https://github.com/ibm-cloud-architecture/refarch-integration-services) is a java based micro service to expose operations on the customer, account and purchase order resources. Packaged as docker image with Liberty server, it can be deployed on ICP. In the system context above the customer database and a data access service in front of the database.
+The following repositories are part of the reference architecture implementation
 * [Cognitive and analytics customer churn assessment](https://github.com/ibm-cloud-architecture/refarch-cognitive-analytics) using structured and unstructured data build a business application linking cognitive and analytics to learn customer's behavior and assess customer risk to churn while he/she interacts with your web site.
+* [Predictive maintenance for IoT device with analytics, real time streaming, microservices and cassandra](https://github.com/ibm-cloud-architecture/refarch-asset-analytics). This set of projects presents an end to end solution to enable predictive maintenance capabilities on manufacturing assets. The solution uses Apache Kafka, Cassandra, SpringBoot, Angular 6, ICP for Data, Data Science Experience.
 * [Integration tests](https://github.com/ibm-cloud-architecture/refarch-integration-tests) is a project to manage the different integration tests. In this project there are tests to validate the backend services of this solution under the src/test/java project, junit test under the package `dashdb.icp.tests`.
 * [Deploy mongoDB on ICP](https://github.com/ibm-cloud-architecture/refarch-icp-mongodb).
 * [Do real time streaming analytics with Apache Kafka](docs/kafka/readme.md)

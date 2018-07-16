@@ -17,11 +17,11 @@ The diagram above shows brokers allocated on three servers, partitions used by p
 * Each partition is ordered immutable sequence of records, that are persisted for a long time period.
 * Each record consists of a key, a value, and a timestamp.
 * Producers publish data records to topic and consumers subscribe to topics. When a record is produced without specifying a partition, a partition will be chosen using a hash of the key. If the record did not provide a timestamp, the producer will stamp the record with its current time (creation time or log append time). They hold a pool of buffer to keep records not yet transmitted to the server.
-* Each partition is replicated across a configurable number of servers for fault tolerance. The number of partition will depend on the number of consumer, the traffic pattern
+* Each partition is replicated across a configurable number of servers for fault tolerance. The number of partition will depend on the number of consumer, the traffic pattern...
 * Each partitioned message has a unique sequence id called **offset** ("abcde, ab, a ..." are offsets).
 * When a consumer reads a topic, it actually reads data from all of the partitions. As a consumer reads data from a partition, it advances its offset.
-* Offsets are maintained in Zookeeper or in Kafka, so consumers can read next message (or from a specific offset) correctly even during broker server outrages. We are detailing this in the [implementation here](https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/asset-consumer)
-* Kafka uses topics with a pub/sub combined with queue model: it uses the concept of consumer group to divide the processing over a collection of consumer processes, and message can be broadcasted to multiple groups.
+* Offsets are maintained in Zookeeper or in Kafka, so consumers can read next message (or from a specific offset) correctly even during broker server outrages. We are detailing this in the [implementation here](https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/asset-consumer).
+* Kafka uses topics with a pub/sub combined with queue model: it uses the concept of consumer group to divide the processing over a collection of consumer processes, running in parallel, and message can be broadcasted to multiple groups.
 * Zookeeper is used to keep cluster state, notify consumers and producers for new or failed broker
 * Stream processing is helpful for handling out-of-order data, *reprocessing* input as code changes, and performing stateful computations. It uses producer / consumer, stateful storage and consumer groups. It treats both past and future data the same way.
 * Consumer performs asynchronous pull to the connected broker via the subscription to a topic.
@@ -49,11 +49,9 @@ Kafka Stream has the following capabilities:
 * Support stateful and windowing operations by processing one record at a time.
 * Can be integrated in java application and micro service. No need for separate processing cluster. It is a Java API. Stream app is done outside of the broker code!.
 * Elastic, highly scalable, fault tolerance, it can recover from failure
-* Deploy as container to kubernetes or other orchestration platform
+* Deployed as container to kubernetes or other orchestration platform
 
-From a component view kafka streaming application looks like:
-
-Kafka stream should be your future platform for asynchronous communication between your microservices to simplify interdependencies between them.
+Kafka stream should be your future platform for asynchronous communication between your microservices to simplify interdependencies between them. (We are covering this pattern in [this service mesh article](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/service-mesh.md))
 
 ## Architecture
 
@@ -115,7 +113,7 @@ For IBM Cloud private HA installation see the [product documentation](https://ww
 Traditionally disaster recovery and high availability were always consider separated subjects. Now active/active deployment where workloads are deployed in different data center, are more a common request. IBM Cloud Private is supporting [federation cross data centers](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Resiliency/Federating_ICP_clusters.md), but you need to ensure to have low latency network connections. Also not all deployment components of a solution are well suited for cross data center clustering.
 
 In Kafka context, the **Confluent** web site presents an interesting article for [kafka production deployment](https://docs.confluent.io/current/kafka/deployment.html). One of their recommendation is to avoid cluster that spans multiple data centers and specially long distance ones.
-But the semantic of the event processing may authorize some adaptations. For sure you need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble running at least three nodes (five nodes for production deployment, so that you can tolerate the loss of one server during the planned maintenance of another).
+But the semantic of the event processing may authorize some adaptations. For sure you need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble running at least three nodes (five nodes for production deployment, so that you can tolerate the loss of one server during the planned maintenance of another). One Zookeeper server acts as a lead and the two other as stand-by.
 
 When deploying Kafka within kubernetes cluster the following diagram illustrates a minimum HA topology with three nodes for kafka and five for zookeeper:
 ![](kafka-k8s.png)
@@ -163,6 +161,8 @@ Kafka configuration is an art and you need to tune the parameters by use case:
 * Define the number of partitions to drive consumer parallelism. More consumers running in parallel the higher is the throughtput.
 * Assess the retention hours to control when old messages in topic can be deleted
 * Control the maximum message size the server can receive.    
+
+Zookeeper is not CPU intensive and each server should have a least 2 GB of heap space and 4GB reserved. Two cpu per server should be sufficient. Servers keep their entire state machine in memory, and write every mutation to a durable WAL (Write Ahead Log) on persistent storage. To prevent the WAL from growing without bound, ZooKeeper servers periodically snapshot their in memory state to storage. Use fast and dynamically provisioned persistence storage for both WAL and snapshot.
 
 ## Run Kafka in Docker
 ### On Linux

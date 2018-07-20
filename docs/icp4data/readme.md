@@ -34,6 +34,7 @@ Based on IBM Cloud private, and adds:
 
 ## Demo scripts
 
+## Deploy on ICP
 
 
 ## Further Readings

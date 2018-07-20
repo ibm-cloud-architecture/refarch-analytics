@@ -8,7 +8,33 @@ A pre-requisite for deployment is to have a persistent volume that is at least 5
 
 ## What Type of Persistent Storage to use
 
-We looked at two common options, NFS and [Gluster](https://www.gluster.org/). A fairly simple but repeatable workload that had an IO component was used to test performance metrics. This workload was based on the [TPC-D benchmark](http://www.tpc.org/tpcd/default.asp).
+We looked at three common options, HostPath, NFS and [Gluster](https://www.gluster.org/). A fairly simple but repeatable workload that had an IO component was used to test performance metrics. This workload was based on the [TPC-D benchmark](http://www.tpc.org/tpcd/default.asp).
+
+### HostPath
+HostPath volume mounts a file or directory from the host node’s filesystem into your Pod. So it represents the simplest storage method but it is exposed to the risk of node's hard drive failure. For development purpose it is a viable solution.
+Below is a json view of the configuration you can setup in the Create PersistenceVolume option in the ICP Console > Storage menu.
+```
+{
+  "kind": "PersistentVolume",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "db2w-pv",
+    "labels": {}
+  },
+  "spec": {
+    "capacity": {
+      "storage": "25Gi"
+    },
+    "accessModes": [
+      "ReadWriteOnce"
+    ],
+    "persistentVolumeReclaimPolicy": "Retain",
+    "hostPath": {
+      "Path": "/mnt/bludata0"
+    }
+  }
+}
+```
 
 ### NFS
 
@@ -139,7 +165,7 @@ A Db2 Warehouse deployment comes with a database named BLUDB and an alias to thi
 
 ### Using ADMIN_CMD
 
-The full syntax of a backup using ADMIN_CMD is available [in the Knowledge Center](https://www.ibm.com/support/knowledgecenter/en/SSEPGG_11.1.0/com.ibm.db2.luw.sql.rtn.doc/doc/r0023569.html). At a minimum the command will look like `CALL SYSPROC.ADMIN_CMD('backup database BLUDB ONLINE INCLUDE LOGS')`. This will cause backup files to be created in a default location (`/mnt/bludata0/db2/log/`). **NOTE**: These files are inside the container and are lost if the container is lost. 
+The full syntax of a backup using ADMIN_CMD is available [in the Knowledge Center](https://www.ibm.com/support/knowledgecenter/en/SSEPGG_11.1.0/com.ibm.db2.luw.sql.rtn.doc/doc/r0023569.html). At a minimum the command will look like `CALL SYSPROC.ADMIN_CMD('backup database BLUDB ONLINE INCLUDE LOGS')`. This will cause backup files to be created in a default location (`/mnt/bludata0/db2/log/`). **NOTE**: These files are inside the container and are lost if the container is lost.
 
 This method is useful when preparing for a big change that may need to be rolled back. See the additional steps required in the next section if you want to back up data for disaster recovery or duplicate deployment reasons, remembering you must restore from a command line.
 
@@ -184,7 +210,7 @@ There will also be files in `/mnt/blumeta0/scratch/db2inst1/` named as `BLUDB.0.
 
 #### Copy Files Outside the Pod
 
-In order to have these files outside the environment you have to first copy them. This can be done directly from the pod to any remotely-mounted filesystem that would be used by an automated backup and retention database. **NOTE** It is best practice to keep the encryption key file separate from the backup image. These instructions do not do that. 
+In order to have these files outside the environment you have to first copy them. This can be done directly from the pod to any remotely-mounted filesystem that would be used by an automated backup and retention database. **NOTE** It is best practice to keep the encryption key file separate from the backup image. These instructions do not do that.
 
 For each file you need to copy run the `kubectl cp` command from outside the pod:
 

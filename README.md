@@ -11,10 +11,10 @@ To get explanation of the components involved in this architecture see [Architec
 # Table of Contents
 * [Data Sciences quick introduction](#data-sciences)
 * [Solution overview](#solution-overview)
-* [ICP for data](./docs/icp-data.md)
+* [ICP for data](./docs/icp4data/readme.md)
 * [Repositories of the solution](#repositories)
 * [Build and Run](#build-and-run)
-* [DevOps](#devops) with [deployment](#deployment)
+* [DevOps](#devops) with [deployment](#deployments)
 * [Service management](#service-management)
 * [Compendium](#compendium)
 * [Contribute](#contribute)
@@ -84,19 +84,20 @@ The following repositories are part of the reference architecture implementation
 The user interface is packaged as part of the [Case Portal application](https://github.com/ibm-cloud-architecture/refarch-case-portal-app) and we [documented](docs/UI/README.md) how to add the specifics customer management UI inside the portal. The backend component is a micro-service developed with JAXRS, packaged with Liberty server as a docker image.
 
 ## For Db2 Warehouse data ingestion
-For moving data to data warehouse there are different approaches, we documented one approach [here](docs/db2warehouse/CopyingData.md)
+To install DB2 warehouse on IBM Cloud Private read [this article](./docs/db2warehouse/README.md).
+For moving data from DB2 running on-premise to DB2 warehouse on ICP there are different approaches, we documented [one approach](docs/db2warehouse/CopyingData.md) based on dB2 warehouse out of the box capabilities.
 
 ## For taxi scenario
-[This scenario](./docs/taxi_scenario/README.md) is based on public data on New York city taxi usage and illustrates on how a Data Scientist responds to a manager demand with a quick around time for data analysis using IBM Data management and jupyter notebooks.
+[The Taxi forecast scenario](./docs/taxi_scenario/README.md) is based on public data on New York city taxi usage and illustrates on how a Data Scientist responds to a manager demand with a quick around time for data analysis using IBM Data management and jupyter notebooks.
 
 # DevOps
 ## Continuous integration
-## Deployment
+## Deployments
 * [Deploy Data Science eXperience (DSX) to IBM Cloud Private](docs/ICP/README.md)
 * [Deploy Db2 Warehouse to IBM Cloud Private](docs/db2warehouse/README.md)
-
-## Continuous testing
-
+* [Deploy Kafka on ICP](https://github.com/ibm-cloud-architecture/refarch-analytics/blob/master/docs/kafka/readme.md#on-macos-with-docker-edge-and-kubernetes)
+* [Deploy IBM Event Stream (Based on Kafka) on ICP](https://github.com/ibm-cloud-architecture/refarch-analytics/blob/master/docs/kafka/readme.md#install-on-icp)
+* [Deploy Cassandra on ICP](https://github.com/ibm-cloud-architecture/refarch-asset-analytics/blob/master/docs/cassandra/readme.md#deployment-on-icp)
 # Service management  
 * [DB2 backup and restore in the context of ICP deployment](docs/db2warehouse/README.md#backing-up-databases)
 

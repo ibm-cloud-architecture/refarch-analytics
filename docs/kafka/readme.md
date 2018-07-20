@@ -202,13 +202,14 @@ confluentinc/cp-zookeeper          latest              18b57832a1e2        6 day
 ```
 
 ### On MacOS with Docker Edge and Kubernetes
-This deployment is using the last Docker Edge version which include kubernetes simple cluster.
+This deployment is using the last Docker Edge version which includes kubernetes simple cluster.
 
-The folder scripts/kafka include a set of yaml files to configure zookeeper and kafka:
+The folder scripts/kafka includes a set of yaml files to configure zookeeper and kafka:
 ```
+cd scripts/kafka
 # Create the zookeeper single node (one replica) exposing port 2181
 kubectl create -f zookeeper-deployment.yaml
-# expose zokeeper with a nodeport service on port 30181 mapped to docker image port 2181
+# expose zookeeper with a nodeport service on port 30181 mapped to docker image port 2181
 kubectl create -f zookeeper-service.yaml
 ```
 Modify the kafka deployment yaml file to change the IP addresses set with your ip address.
@@ -249,7 +250,31 @@ Kafka web site has an interesting use case to count words within a text, we will
 
 We are also detailing a full solution including Event producer, consumer and persistence to Cassandra in [this repository](https://github.com/ibm-cloud-architecture/refarch-asset-analytics)
 
-## Install on ICP
+## Install Kafka on ICP
+For ICP deployment we are proposing another set of yaml files to have 3 replicas for Zookeeper and Kafka, use HostPath persistence volumes, and expose services. The files are in the [asset analytics project deployments folder](https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/deployments)
+
+The docker image used is from wurstmeister/kafka and wurstmeister/zookeeper
+
+The steps are as follow:
+```
+# 1 - Connect to ICP. You may want to get the admin security token using the Admin console and the script:
+$ ./scripts/connectToCluster.sh
+# 2 - Create Zoopkeeper service
+$ kubectl apply -f deployments/zookeeper/zookeeper-service.yaml
+# 3 - Create Zoopkeeper deployment
+$ kubectl apply -f deployments/zookeeper/zookeeper-deployment.yaml
+# 4 - Create Kafka service
+$ kubectl apply -f deployments/kafka/kafka-service.yaml
+# 5 - Create Kafka deployment
+$ kubectl apply -f deployments/kafka/kafka-deployment.yaml
+```
+
+To validate verify the pods are up and running:
+```
+$ kubectl get pods -o wide
+```
+
+## Install IBM Event Streams on ICP
 *(Tested on June 2018 on ibm-eventstreams-dev helm chart 0.1.2 on ICP 2.1.0.3)*
 
 You can use the `ibm-eventstreams-dev` Helm chart from ICP catalog the instructions can be found [here](https://developer.ibm.com/messaging/event-streams/docs/install-guide/).  

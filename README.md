@@ -123,3 +123,8 @@ We really value contributions and to maximize the impact of code contributions w
 If you want to contribute, start by using git fork on this repository and then clone your own repository to your local workstation for development purpose. Add the up-stream repository to keep synchronized with the master.
 
 Please [contact me](boyerje@us.ibm.com) for any questions.
+
+*Authors:*
+* Jerome Boyer - IBM
+* Sunil Dube - IBM 
+* Sandra Tucker - IBM

@@ -1,4 +1,18 @@
 # Apache Kafka
+*Author: Jerome Boyer - IBM*
+In this article we are digging into real time event processing and analytics using Kafka. We are deploying this capability to IBM Cloud Private using Kafka open source distribution or IBM Event Stream product.
+
+## Table of contents
+* [Introduction](#introduction)
+* [Details](#kafka-stream-details)
+* [Architecture](#architecture)
+* [Deployment](#deployment)
+  * [Kafka on IBM Cloud Private](#install-kafka-on-icp)
+  * [IBM Even Stream on IBM Cloud Private](#install-ibm-event-streams-on-icp)
+* [Monitoring with Prometheus and Grafana](./monitoring.md)
+
+
+## Introduction
 [Kafka](https://kafka.apache.org/) is a distributed streaming platform. It has a set of key capabilities:
 * Publish and subscribe streams of records, similar to a message queue or enterprise messaging system.
 * Atomic broadcast, send a record once, every subscriber gets it once.
@@ -6,11 +20,11 @@
 * It is built on top of the ZooKeeper synchronization service to keep topic, partition and offsets states
 * Process streams of records as they occur.
 
-![](kafka-hl-view.png)
+![](images/kafka-hl-view.png)
 
 The diagram above shows brokers allocated on three servers, partitions used by producer and consumers and data replication. Zookeeper also runs in cluster. Before going into the details of this architecture we want to summarize the key concepts.
 
-## Key concepts
+### Key concepts
 * Kafka runs as a cluster of one or more **broker** servers that can, in theory, span multiple data centers.
 * The Kafka cluster stores streams of records in **topics**. Topic is referenced by producer to send data too, and subscribed by consumers.
 * Each broker may have zero or more partitions per topic.
@@ -27,10 +41,10 @@ The diagram above shows brokers allocated on three servers, partitions used by p
 * Consumer performs asynchronous pull to the connected broker via the subscription to a topic.
 
 The figure below illustrates a topic having multiple partitions replicated within the broker cluster:
-![](./kafka-topic-partition.png)  
+![](./images/kafka-topic-partition.png)  
 
 
-##  Use cases
+###  Use cases
 * Aggregation of event coming from multiple producers.
 * Monitor distributed applications to produce centralized feed of operational data.
 * Logs collector from multiple services
@@ -55,7 +69,7 @@ Kafka stream should be your future platform for asynchronous communication betwe
 
 ## Architecture
 
-![](kafka-stream-arch.png)
+![](images/kafka-stream-arch.png)
 
 * Kafka Streams partitions data for processing it. Partition enables data locality, elasticity, scalability, high performance, parallelism, and fault tolerance
 * The keys of data records determine the partitioning of data in both Kafka and Kafka Streams
@@ -164,8 +178,8 @@ Kafka configuration is an art and you need to tune the parameters by use case:
 
 Zookeeper is not CPU intensive and each server should have a least 2 GB of heap space and 4GB reserved. Two cpu per server should be sufficient. Servers keep their entire state machine in memory, and write every mutation to a durable WAL (Write Ahead Log) on persistent storage. To prevent the WAL from growing without bound, ZooKeeper servers periodically snapshot their in memory state to storage. Use fast and dynamically provisioned persistence storage for both WAL and snapshot.
 
-## Run Kafka in Docker
-### On Linux
+## Deployment
+### Run Kafka in Docker On Linux
 If you run on a linux operating system, you can use the [Spotify kafka image](https://hub.docker.com/r/spotify/kafka/) from dockerhub as it includes [Zookeeper]() and Kafka in a single image.
 
 It is started in background (-d), named "kafka" and mounting scripts/kafka folder to /scripts
@@ -191,7 +205,7 @@ We have done shell scripts for you to do those command and test your local kafka
 * sendText.sh  Send a multiple lines message on mytopic topic- open this one in one terminal.
 * consumeMessage.sh  Connect to the topic to get messages. and this second in another terminal.
 
-### On MacOS with Docker
+### Run Kafka On MacOS with Docker
 Go to the `scripts/kafka` folder and start a 4 docker containers solution with Kafka, ZooKeeper, REST api, and schema registry using `docker-compose up` command. The images are from [confluent](https://github.com/confluentinc/)
 ```
 REPOSITORY                         TAG                 IMAGE ID            CREATED             SIZE
@@ -295,17 +309,17 @@ The following parameters were changed from default settings:
 For the release name take care to do not use a too long name as there is an issue on name length limited to 63 characters.
 
 The screen shots below presents the release deployment results:
-![](helm-rel01.png)  
+![](images/helm-rel01.png)  
 
 The figure above illustrates the following:
 * ConfigMap for UI, kafka proxy, kafka REST api proxy.
 * The three deployment for each major components: UI, REST and controller.
 
 The figure below is for roles, rolebinding and secret as part of the Role Based Access Control.
-![](helm-rel02.png)
+![](images/helm-rel02.png)
 
 and the services for zookeeper, kafka and Event Stream REST api and user interface:  
-![](helm-rel03.png)
+![](images/helm-rel03.png)
 
 The services expose capabilities to external world via nodePort type:
 * admin console port 32492 on the k8s proxy IP address
@@ -319,7 +333,7 @@ kubectl get svc -n greencompute "greenkafka-ibm-es-admin-ui-proxy-svc" -o 'jsonp
 kubectl cluster-info | grep "catalog" | awk 'match($0, /([0-9]{1,3}\.){3}[0-9]{1,3}/) { print substr( $0, RSTART, RLENGTH )}'
 ```
 
-![](event-stream-admin.png)
+![](images/event-stream-admin.png)
 
 Use the Event Stream Toolbox to download a getting started application. One example of the generated app is in the IBMEventStreams_GreenKafkaTest folder, and a description on how to run it is in the [readme](../../IBMEventStreams_GreenKafkaTest/README.md)
 
@@ -327,10 +341,10 @@ The application runs in Liberty at the URL: http://localhost:9080/GreenKafkaTest
 ![](start-home.png)
 to test the producer and consumer of text message:
 
-![](app-producer.png)  
+![](images/app-producer.png)  
 
 
-![](app-consumer.png)  
+![](images/app-consumer.png)  
 
 The following project: [asset analytics](https://github.com/ibm-cloud-architecture/refarch-asset-analytics) goes deeper in stream application implementation.
 
@@ -476,10 +490,6 @@ Outputs of the WordCount application is actually a continuous stream of updates,
 
 ## Compendium
 
-Processing Tweets with Kafka Streams
-Kafka Papers and Presentations Wiki
-Applying Kafka Streams for internal message delivery pipeline
-Table-Stream Dualism Video
 * [Start by reading kafka introduction](https://kafka.apache.org/intro/)
 * [Another introduction from the main contributors: Confluent](http://www.confluent.io/blog/introducing-kafka-streams-stream-processing-made-simple)
 * [Develop Stream Application using Kafka](https://kafka.apache.org/11/documentation/streams/)

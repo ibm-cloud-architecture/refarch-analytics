@@ -12,7 +12,8 @@ To get explanation of the components involved in this architecture see [Architec
 * [Data Sciences quick introduction](#data-sciences)
 * [Solution overview](#solution-overview)
 * [ICP for data](./docs/icp4data/readme.md)
-* [Repositories of the solution](#repositories)
+* [Real time analytics with Event Stream or Kafka](./docs/kafka/readme.md)
+* [Repositories for the different solutions](#repositories)
 * [Build and Run](#build-and-run)
 * [DevOps](#devops) with [deployment](#deployments)
 * [Service management](#service-management)
@@ -71,7 +72,7 @@ The proposed allocation of the components of this system context is still open, 
 # Repositories
 The following repositories are part of the reference architecture implementation
 * [Cognitive and analytics customer churn assessment](https://github.com/ibm-cloud-architecture/refarch-cognitive-analytics) using structured and unstructured data build a business application linking cognitive and analytics to learn customer's behavior and assess customer risk to churn while he/she interacts with your web site.
-* [Predictive maintenance for IoT device with analytics, real time streaming, microservices and cassandra](https://github.com/ibm-cloud-architecture/refarch-asset-analytics). This set of projects presents an end to end solution to enable predictive maintenance capabilities on manufacturing assets. The solution uses Apache Kafka, Cassandra, SpringBoot, Angular 6, ICP for Data, Data Science Experience.
+* [Predictive maintenance for IoT devices with analytics, real time streaming, microservices and cassandra](https://github.com/ibm-cloud-architecture/refarch-asset-analytics). This set of projects presents an end to end solution to enable predictive maintenance capabilities on manufacturing assets. The solution uses Apache Kafka, Cassandra, SpringBoot, Angular 6, ICP for Data, Data Science Experience.
 * [Integration tests](https://github.com/ibm-cloud-architecture/refarch-integration-tests) is a project to manage the different integration tests. In this project there are tests to validate the backend services of this solution under the src/test/java project, junit test under the package `dashdb.icp.tests`.
 * [Deploy mongoDB on ICP](https://github.com/ibm-cloud-architecture/refarch-icp-mongodb).
 * [Do real time streaming analytics with Apache Kafka](docs/kafka/readme.md)
@@ -126,5 +127,9 @@ Please [contact me](boyerje@us.ibm.com) for any questions.
 
 *Authors:*
 * Jerome Boyer - IBM
-* Sunil Dube - IBM 
+* Rob Wilson - IBM
+* Sunil Dube - IBM
 * Sandra Tucker - IBM
+* Amaresh Rajasekharan - IBM
+* Zach Silverstein - IBM
+* John Marting - IBM

@@ -1,7 +1,8 @@
 # Apache Kafka
-*Author: Jerome Boyer - IBM*  
 
 In this article we are digging into real time event processing and analytics using Kafka. We are deploying this capability to IBM Cloud Private using Kafka open source distribution or IBM Event Stream product.
+
+Update 08/2018 - *Author: [Jerome Boyer](https://www.linkedin.com/in/jeromeboyer/)*  
 
 ## Table of contents
 * [Introduction](#introduction)

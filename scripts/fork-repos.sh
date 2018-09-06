@@ -36,6 +36,7 @@ cat > repo.list <<EOF
 refarch-analytics
 refarch-integration-services
 refarch-cognitive-analytics
+refarch-asset-analytics
 EOF
 
 api_endpoint="https://api.github.com/repos/ibm-cloud-architecture"

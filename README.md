@@ -12,7 +12,7 @@ To get explanation of the components involved in this architecture see [Architec
 * [Data Sciences quick introduction](#data-sciences)
 * [Solution overview](#solution-overview)
 * [ICP for data](./docs/icp4data/readme.md)
-* [Real time analytics with Event Stream or Kafka](./docs/kafka/readme.md)
+* [Real time analytics with IBM Event Stream or Kafka](./docs/kafka/readme.md)
 * [Repositories for the different solutions](#repositories)
 * [Build and Run](#build-and-run)
 * [DevOps](#devops) with [deployment](#deployments)
@@ -51,6 +51,9 @@ There are a set of standard challenges while developing an IT solution which int
 
 ## Methodology
 Combining the development of analytics, machine learning and traditional software development involves adapting the agile iterative methodology. At IBM we are using the Design thinking and lean approach for developing innovative business applications. The [garage method](https://www.ibm.com/cloud/garage/) explains this approach. To support AI and analytics the method needs to be extended, focusing on data and data sciences. In [this article](./docs/methodology.md) we cover the specifics activities for analytics.
+
+## Algorithm selection
+In the application from [https://samrose3.github.io/algorithm-explorer](https://samrose3.github.io/algorithm-explorer/) you can assess what algorithm to use to address a specific problem.
 
 # Solution Overview
 The solution needs to cover the following capabilities:

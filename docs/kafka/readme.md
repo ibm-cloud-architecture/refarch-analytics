@@ -1,6 +1,6 @@
 # Apache Kafka
 
-In this article we are digging into real time event processing and analytics using Kafka. We are deploying this capability to IBM Cloud Private using Kafka open source distribution or IBM Event Stream product.
+In this article we are digging into real time event processing and analytics using Kafka. We are documenting how to deploy this capability on IBM Cloud Private (or Kubernetes) using a Kafka open source distribution or the [IBM Event Stream packaging](https://developer.ibm.com/messaging/event-streams/).
 
 Update 08/2018 - *Author: [Jerome Boyer](https://www.linkedin.com/in/jeromeboyer/)*  
 
@@ -24,7 +24,7 @@ Update 08/2018 - *Author: [Jerome Boyer](https://www.linkedin.com/in/jeromeboyer
 
 ![](images/kafka-hl-view.png)
 
-The diagram above shows brokers allocated on three servers, partitions used by producer and consumers and data replication. Zookeeper also runs in cluster. Before going into the details of this architecture we want to summarize the key concepts.
+The diagram above shows brokers allocated on three servers, partitions used by producer and consumers and data replication (See next section for a quick summary of those concepts). Zookeeper is used to persist states of the platform and it also runs in cluster. Before going into the details of this architecture we want to summarize the key concepts.
 
 ### Key concepts
 * Kafka runs as a cluster of one or more **broker** servers that can, in theory, span multiple data centers.
@@ -34,9 +34,9 @@ The diagram above shows brokers allocated on three servers, partitions used by p
 * Each record consists of a key, a value, and a timestamp.
 * Producers publish data records to topic and consumers subscribe to topics. When a record is produced without specifying a partition, a partition will be chosen using a hash of the key. If the record did not provide a timestamp, the producer will stamp the record with its current time (creation time or log append time). They hold a pool of buffer to keep records not yet transmitted to the server.
 * Each partition is replicated across a configurable number of servers for fault tolerance. The number of partition will depend on the number of consumer, the traffic pattern...
-* Each partitioned message has a unique sequence id called **offset** ("abcde, ab, a ..." are offsets).
+* Each partitioned message has a unique sequence id called **offset** ("abcde, ab, a ..." in the figure above are offsets).
 * When a consumer reads a topic, it actually reads data from all of the partitions. As a consumer reads data from a partition, it advances its offset.
-* Offsets are maintained in Zookeeper or in Kafka, so consumers can read next message (or from a specific offset) correctly even during broker server outrages. We are detailing this in the [implementation here](https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/asset-consumer).
+* Offsets are maintained in Zookeeper or in Kafka, so consumers can read next message (or from a specific offset) correctly even during broker server outrages. We are detailing this in the asset consumer implementation in [this repository](https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/asset-consumer).
 * Kafka uses topics with a pub/sub combined with queue model: it uses the concept of consumer group to divide the processing over a collection of consumer processes, running in parallel, and message can be broadcasted to multiple groups.
 * Zookeeper is used to keep cluster state, notify consumers and producers for new or failed broker
 * Stream processing is helpful for handling out-of-order data, *reprocessing* input as code changes, and performing stateful computations. It uses producer / consumer, stateful storage and consumer groups. It treats both past and future data the same way.
@@ -47,6 +47,7 @@ The figure below illustrates a topic having multiple partitions replicated withi
 
 
 ###  Use cases
+The typical use cases where Kafka helps are:
 * Aggregation of event coming from multiple producers.
 * Monitor distributed applications to produce centralized feed of operational data.
 * Logs collector from multiple services
@@ -80,10 +81,10 @@ Kafka stream should be your future platform for asynchronous communication betwe
 
 See [this article](https://docs.confluent.io/current/streams/architecture.html) for architecture presentation.
 
-When you want to deploy solution that spreads over multiple region to support global streaming, you need to address at least three challenges:
-* How do you make dat available to applications across multiple data centers?
+When you want to deploy solution that spreads over multiple regions to support global streaming, you need to address at least three challenges:
+* How do you make data available to applications across multiple data centers?
 * How to serve data closer to the geography?
-* How to be compliant on regulation, like GDPR?
+* How to be compliant on regulations, like GDPR?
 
 ### Solution considerations
 There are a set of design considerations to assess for each kafka solution:

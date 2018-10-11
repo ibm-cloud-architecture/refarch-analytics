@@ -2,14 +2,14 @@
 
 In this article we are digging into real time event processing and analytics using Kafka. We are documenting how to deploy this capability on IBM Cloud Private (or Kubernetes) using a Kafka open source distribution or the [IBM Event Stream packaging](https://developer.ibm.com/messaging/event-streams/).
 
-Update 08/2018 - *Author: [Jerome Boyer](https://www.linkedin.com/in/jeromeboyer/)*  
+Update 10/2018 - *Author: [Jerome Boyer](https://www.linkedin.com/in/jeromeboyer/)*  
 
 ## Table of contents
 * [Introduction](#introduction)
 * [Details](#kafka-stream-details)
 * [Architecture](#architecture)
 * [Deployment](#deployment)
-  * [Kafka on IBM Cloud Private](#install-kafka-on-icp)
+  * [Kafka on IBM Cloud Private](#install-zookeeper-kafka-on-icp)
   * [IBM Even Stream on IBM Cloud Private](#install-ibm-event-streams-on-icp)
 * [Monitoring with Prometheus and Grafana](./monitoring.md)
 
@@ -20,17 +20,17 @@ Update 08/2018 - *Author: [Jerome Boyer](https://www.linkedin.com/in/jeromeboyer
 * Atomic broadcast, send a record once, every subscriber gets it once.
 * Store streams of data records on disk and replicate within the cluster for fault-tolerance.
 * It is built on top of the ZooKeeper synchronization service to keep topic, partition and offsets states
-* Process streams of records as they occur.
-
-![](images/kafka-hl-view.png)
-
-The diagram above shows brokers allocated on three servers, partitions used by producer and consumers and data replication (See next section for a quick summary of those concepts). Zookeeper is used to persist states of the platform and it also runs in cluster. Before going into the details of this architecture we want to summarize the key concepts.
 
 ### Key concepts
 * Kafka runs as a cluster of one or more **broker** servers that can, in theory, span multiple data centers.
 * The Kafka cluster stores streams of records in **topics**. Topic is referenced by producer to send data too, and subscribed by consumers.
 * Each broker may have zero or more partitions per topic.
 * Each partition is ordered immutable sequence of records, that are persisted for a long time period.
+
+ ![](images/kafka-hl-view.png)
+
+ The diagram above shows brokers allocated on three servers, partitions used by producer and consumers and data replication (See next section for a quick summary of those concepts). Zookeeper is used to persist states of the platform and it also runs in cluster.
+
 * Each record consists of a key, a value, and a timestamp.
 * Producers publish data records to topic and consumers subscribe to topics. When a record is produced without specifying a partition, a partition will be chosen using a hash of the key. If the record did not provide a timestamp, the producer will stamp the record with its current time (creation time or log append time). They hold a pool of buffer to keep records not yet transmitted to the server.
 * Each partition is replicated across a configurable number of servers for fault tolerance. The number of partition will depend on the number of consumer, the traffic pattern...
@@ -101,7 +101,7 @@ With Kafka stream state store or KTable, you should separate the changelog topic
 #### Producer
 When developing a record producer you need to assess the following:
 * what is the expected throughput to send events? Event size * average throughput combined with the expected latency help to compute buffer size.
-* can the producer batch events together to send them in batch over one send operation See
+* can the producer batch events together to send them in batch over one send operation?
 * is there a risk for loosing communication? Tune the RETRIES_CONFIG and buffer size
 * assess once to exactly once delivery requirement. Look at idempotent producer.
 
@@ -121,7 +121,7 @@ Then from the consumer point of view a set of items need to be addressed during 
 For any Kubernetes deployment real high availability is constrained by the application / workload deployed on it. The kubernetes platform supports high availability by having at least the following configuration:
 * At least three master nodes (always a odd number). One is active at master, the others are in standby.
 * Three proxy nodes.
-* At least three worker nodes
+* At least three worker nodes, but with zookeeper and kafka clusters need to move to 6 nodes.
 * Externalize the management stack to three manager nodes
 * Shared storage outside of the cluster to support private image registry, audit logs
 * Use Etcd cluster: See recommendations [from here](https://github.com/coreos/etcd/blob/master/Documentation/op-guide/clustering.md). The virtual IP manager assign virtual IP address to master and proxy nodes and monitors the health of the cluster. It leverages ETCD for storing information, so it is important that etcd is high available.  
@@ -130,10 +130,10 @@ For IBM Cloud private HA installation see the [product documentation](https://ww
 Traditionally disaster recovery and high availability were always consider separated subjects. Now active/active deployment where workloads are deployed in different data center, are more a common request. IBM Cloud Private is supporting [federation cross data centers](https://github.com/ibm-cloud-architecture/refarch-privatecloud/blob/master/Resiliency/Federating_ICP_clusters.md), but you need to ensure to have low latency network connections. Also not all deployment components of a solution are well suited for cross data center clustering.
 
 In Kafka context, the **Confluent** web site presents an interesting article for [kafka production deployment](https://docs.confluent.io/current/kafka/deployment.html). One of their recommendation is to avoid cluster that spans multiple data centers and specially long distance ones.
-But the semantic of the event processing may authorize some adaptations. For sure you need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble running at least three nodes (five nodes for production deployment, so that you can tolerate the loss of one server during the planned maintenance of another). One Zookeeper server acts as a lead and the two other as stand-by.
+But the semantic of the event processing may authorize some adaptations. For sure you need multiple Kafka Brokers, which will connect to the same ZooKeeper ensemble running at least three nodes (five nodes for production deployment, so that you can tolerate the loss of one server during the planned maintenance of another). One Zookeeper server acts as a lead and the two others as stand-by.
 
 When deploying Kafka within kubernetes cluster the following diagram illustrates a minimum HA topology with three nodes for kafka and five for zookeeper:
-![](kafka-k8s.png)
+![](images/kafka-k8s.png)
 
 This schema illustrates the recommendation to separate Zookeeper from Kafka nodes for failover purpose as zookeeper keeps state of the kafka cluster. We use [anti-affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity) to ensure they are scheduled onto separate worker nodes that the ones used by zookeeper. It uses the labels on pods with a rule like: kafka pod should not run on same node as zookeeper pods.  Here is an example of such spec:
 ```yaml
@@ -150,7 +150,7 @@ spec:
             - key: name
               operator: In
               values:
-              - zookeeper
+              - gc-zookeeper
           topologyKey: kubernetes.io/hostname
 ```
 We recommend doing the [running zookeeper in k8s tutorial](https://kubernetes.io/docs/tutorials/stateful-application/zookeeper) for understanding such configuration.
@@ -175,7 +175,7 @@ Kafka configuration is an art and you need to tune the parameters by use case:
 * partition replication for at least 3 replicas. Recall that in case of node failure,  coordination of partition re-assignments is provided with ZooKeeper.
 * end to end latency needs to be measured from producer (when a message is sent) to consumer when it is read. A consumer is able to get a message when the broker finishes to replicate to all in-synch replicas.
 * use the producer buffering capability to pace the message to the broker. Can use memory or time based threshold.
-* Define the number of partitions to drive consumer parallelism. More consumers running in parallel the higher is the throughtput.
+* Define the number of partitions to drive consumer parallelism. More consumers running in parallel the higher is the throughput.
 * Assess the retention hours to control when old messages in topic can be deleted
 * Control the maximum message size the server can receive.    
 
@@ -183,9 +183,9 @@ Zookeeper is not CPU intensive and each server should have a least 2 GB of heap 
 
 ## Deployment
 ### Run Kafka in Docker On Linux
-If you run on a linux operating system, you can use the [Spotify kafka image](https://hub.docker.com/r/spotify/kafka/) from dockerhub as it includes [Zookeeper]() and Kafka in a single image.
+If you run on a linux operating system, you can use the [Spotify kafka image](https://hub.docker.com/r/spotify/kafka/) from dockerhub as it includes Zookeeper and Kafka in a single image.
 
-It is started in background (-d), named "kafka" and mounting scripts/kafka folder to /scripts
+It is started in background (-d), named "kafka" and mounting scripts folder to /scripts
 ```
 docker run -d -p 2181:2181 -p 9092:9092 -v `pwd`:/scripts --env ADVERTISED_HOST=`docker-machine ip \`docker-machine active\`` --name kafka --env ADVERTISED_PORT=9092 spotify/kafka
 ```
@@ -195,14 +195,14 @@ Then remote connect to the docker container to open a bash shell:
 docker exec  -ti kafka /bin/bash
 ```
 
-Create a topic: it uses zookeeper as a backend to persist partition within the topic.
+Create a topic: it uses zookeeper as a backend to persist partition within the topic. In this deployment zookeeper and kafka are running on the localhost inside the container. So port 2181 is the client port for zookeeper.
 
 ```
 cd /opt/kafka/bin
 ./kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic mytopic
 ./kafka-topics.sh --list --zookeeper localhost:2181
 ```
-We have done shell scripts for you to do those command and test your local kafka and then the kafka deployed on ICP. The scripts are under ../scripts/kafka
+We have done shell scripts for you to do those command and test your local kafka. The scripts are under `../scripts/kafka`
 * createtopic.sh
 * listtopic.sh
 * sendText.sh  Send a multiple lines message on mytopic topic- open this one in one terminal.
@@ -238,22 +238,16 @@ Modify the kafka deployment yaml file to change the IP addresses set with your i
 ```
 Then create the kafka deployment:
 ```
-$ kubectl create -f kafka-deployment.yaml
+$ kubectl create -f deployments/kafka/dev/kafka-deployment.yaml
 # and the service to export a nodeport 30092
-$ kubectl create -f kafka-service.yaml
+$ kubectl create -f deployments/kafka/dev/kafka-service.yaml
 ```
 
-So now we can test with a tool like: `kafkacat`, that you can install with `brew install kafkacat`. To consume message use a terminal window and listen to the `test-topic` with `kafkacat -C -b 192.168.1.89:30092 -t test-topic`. To produce text message use a command like:
+So now we can test with a tool like: [kafkacat](https://docs.confluent.io/current/app-development/kafkacat-usage.html), that you can install with `brew install kafkacat`. To consume message use a terminal window and listen to the `test-topic` with `kafkacat -C -b 192.168.1.89:30092 -t test-topic`. To produce text message use a command like:
 ```
  echo "I'm a super interesting message" | kafkacat -P -b 192.168.1.89:30092 -t test-topic
 ```
-
-```
-kubectl get pods
-NAME                         READY     STATUS    RESTARTS   AGE
-kafka-786975b994-cwqhs       1/1       Running   0          20m
-zookeeper-58759999cc-ff8fq   1/1       Running   0          55m
-```
+It is important to note as of current version kafkacat may timeout as the timout is set to 5s. The only way to avoid that is to clone the github and change in https://github.com/edenhill/kafkacat/blob/debian/1.3.1-1/kafkacat.c line 640 the condition from 5000 to 30000.
 
 To work on topic, connect to the kafka container and use the same tools as before but specify the zookeeper running in a separate container.
 ```
@@ -267,31 +261,75 @@ Kafka web site has an interesting use case to count words within a text, we will
 
 We are also detailing a full solution including Event producer, consumer and persistence to Cassandra in [this repository](https://github.com/ibm-cloud-architecture/refarch-asset-analytics)
 
-## Install Kafka on ICP
-For ICP deployment we are proposing another set of yaml files to have 3 replicas for Zookeeper and Kafka, use HostPath persistence volumes, and expose services. The files are in the [asset analytics project deployments folder](https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/deployments)
+## Install Zookeeper Kafka on ICP
+There are two options: use our manifests for kafka and zookeeper and even our zookeeper docker image, or use IBM Event Streams if you are using ICP 3.1.x.
+### Using existing manifests
+We are defining two types of manifests, one set for development environment and one for production. The manifests and scripts are under deployments folder of this project.
 
-The docker image used is from wurstmeister/kafka and wurstmeister/zookeeper
+The docker images used for kafka is  `gcr.io/google_samples/k8skafka:v1` and for zookeeper `ibmcase/zookeeper`, an alternate is to use [kubernetes zookeeper K8SZK](https://github.com/kubernetes/contrib/tree/master/statefulsets/zookeeper)
 
-The steps are as follow:
-```
-# 1 - Connect to ICP. You may want to get the admin security token using the Admin console and the script:
-$ ./scripts/connectToCluster.sh
-# 2 - Create Zoopkeeper service
-$ kubectl apply -f deployments/zookeeper/zookeeper-service.yaml
-# 3 - Create Zoopkeeper deployment
-$ kubectl apply -f deployments/zookeeper/zookeeper-deployment.yaml
-# 4 - Create Kafka service
-$ kubectl apply -f deployments/kafka/kafka-service.yaml
-# 5 - Create Kafka deployment
-$ kubectl apply -f deployments/kafka/kafka-deployment.yaml
-```
+#### ZooKeeper
+Development deployment uses one zookeeper server. For production the replicas is set to 5 to tolerate one planned and one unplanned failure. The service defines 3 ports: one for the inter-server communication, one for client access and one for leader-election.
+Persistence volumes are needed to provide durable storage. Better to use network storage like NFS or glusterfs.
+
+Use the script `deployZookeeper.sh`, under deployments/zookeeper, which creates volume, services and deployment or statefulset. When running in production it is better to use separate zookeeper ensemble for each kafka cluster. Each server should have at least 2 GiB of heap with at least 4 GiB of reserved memory
 
 To validate verify the pods are up and running:
 ```
 $ kubectl get pods -o wide
+
 ```
 
-## Install IBM Event Streams on ICP
+#### Kafka
+The manifests and scripts are under `deployments/kafka`.
+
+#### Verify deployment
+* Remote connect to the kafka pod:
+```
+kubectl exec -ti gc-kafka-0 bash
+```
+* Create a test-topic while connect to the kafka broker: gc-kafka-0
+```
+kafka@gc-kafka-0:/$ kafka-topics.sh --create --replication-factor 1 --partitions 1 --topic test-topic --zookeeper gc-srv-zookeeper-svc.greencompute.svc.cluster.local:2181
+```
+* Get IP address and port number for Zookeeper
+```
+$ kubectl describe svc gc-client-zookeeper-svc
+Name:                     gc-client-zookeeper-svc
+Namespace:                greencompute
+Type:                     NodePort
+IP:                       10.10.10.52
+Port:                     client  2181/TCP
+TargetPort:               2181/TCP
+NodePort:                 client  31454/TCP
+Endpoints:                192.168.223.43:2181
+```
+* Validate the list of topics from developer's workstation
+```
+$ kubectl exec -ti gc-kafka-0 -- bash -c "kafka-topics.sh --list --zookeeper gc-srv-zookeeper-svc.greencompute.svc.cluster.local:2181 "
+
+or
+kafka-topics.sh --describe --topic test-topic --zookeeper gc-srv-zookeeper-svc.greencompute.svc.cluster.local:2181
+
+```
+* start the consumer from developer's workstation
+```
+$ kubectl get pods | grep gc-kafka
+$ kubectl exec gc-kafka-0 -- bash -c "kafka-console-consumer.sh --bootstrap-server  localhost:9093 --topic test-topic --from-beginning"
+```
+the script `deployment/kafka/consumetext.sh` does these command. As we run in the kafka broker the host is localhost and the port number is the headless service one.
+
+* start a text producer
+Using the same approach we can use broker tool:
+```
+$ kubectl exec gc-kafka-0 -- bash -c "/opt/kafka/bin/kafka-console-producer.sh --broker-list localhost:9093 --topic test-topic << EOB
+this is a message for you and this one too but this one...
+I m not sure
+EOB"
+```
+Next steps... do pub/sub message using remote IP and port from remote server.
+
+### Install IBM Event Streams on ICP
 *(Tested on June 2018 on ibm-eventstreams-dev helm chart 0.1.2 on ICP 2.1.0.3)*
 
 You can use the `ibm-eventstreams-dev` Helm chart from ICP catalog the instructions can be found [here](https://developer.ibm.com/messaging/event-streams/docs/install-guide/).  
@@ -351,16 +389,8 @@ to test the producer and consumer of text message:
 
 The following project: [asset analytics](https://github.com/ibm-cloud-architecture/refarch-asset-analytics) goes deeper in stream application implementation.
 
-## Verifying ICP Kafka installation
-Once connected to the cluster with kubectl with commands like:
-```
-kubectl config set-cluster gr33n-cluster.icp --server=https://172.16.40.130:8001 --insecure-skip-tls-verify=true
-kubectl config set-context cluster.local-context --cluster=gr33n-cluster.icp
-kubectl config set-credentials admin --token=e.......
-kubectl config set-context cluster.gr33n --user=admin --namespace=greencompute
-kubectl config use-context cluster.gr33n
-```
-Get the list of pods for the namespace you used to install kafka / event streams:
+#### Verifying ICP Kafka installation
+Once connected to the cluster with kubectl, get the list of pods for the namespace you used to install kafka / event streams:
 ```
 $ kubectl get pods -n greencompute
 NAME                                                              READY     STATUS    RESTARTS   AGE
@@ -384,14 +414,14 @@ Now you have access to the same tools as above. The most important thing is to g
 ```
 $ kubectl describe pods greenkafka-ibm-eventstreams-zookeeper-sts-0 --namespace greencompute
 ```
-In the long result get the client port ( ZK_CLIENT_PORT: 2181) information and IP address (IP: 192.168.76.235). Using these information, in the bash in the broker server we can do the following command to get the topics configured.
+In the long result get the client port ( ZK_CLIENT_PORT: 2181) information and IP address (IP: 192.168.76.235). Using these information, in the bash in the kafka broker server we can do the following command to get the topics configured.
 
 ```
 ./kafka-topics.sh --list -zookeeper  192.168.76.235:2181
 ```
 
 
-### Using the Event Stream CLI
+#### Using the Event Stream CLI
 If not done before you can install the Event Stream CLI on top of ICP CLI by first downloading it from the Event Stream console and then running this command:
 ```
 bx plugin install ./es-plugin
@@ -415,8 +445,7 @@ bx es topic-delete streams-plaintext-input
 ### Troubleshooting
 For ICP troubleshooting see this centralized [note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/icp/troubleshooting.md)
 
-#### For Kafka:
-Assess the list of Topics
+#### Assess the list of Topics
 ```
 # remote connect to the kafka pod and open a bash:
 $ kubectl exec -ti kafka-786975b994-9m8n2 bash
@@ -426,6 +455,12 @@ Purge a topic with bad message: delete and recreate it
 ```
 ./kafka-topics.sh  --zookeeper 192.168.1.89:30181 --delete --topic test-topic
 ./kafka-topics.sh  --zookeeper 192.168.1.89:30181 --create --replication-factor 1 --partitions 1 --topic test-topic
+```
+#### Timeout while sending message to topic
+The error message may look like:
+```
+Error when sending message to topic test-topic with key: null, value: 12 bytes with error: (org.apache.kafka.clients.producer.internals.ErrorLoggingCallback)
+org.apache.kafka.common.errors.TimeoutException: Failed to update metadata after 60000 ms.
 ```
 
 ## Streaming app
@@ -486,7 +521,7 @@ root> /opt/kafka_2.11-0.10.1.0/bin/kafka-console-consumer.sh --bootstrap-server 
 
 ```
 mvn exec:java -Dexec.mainClass=ibm.cte.kafka.play.WordCount
-```
+``
 
 Outputs of the WordCount application is actually a continuous stream of updates, where each output record is an updated count of a single word. A KTable is counting the occurrence of word, and a KStream send the output message with updated count.
 

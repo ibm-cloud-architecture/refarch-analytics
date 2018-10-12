@@ -264,7 +264,61 @@ bash-4.4# ./kafka-topics.sh --list --zookeeper 192.168.1.89:30181
 We are also detailing a full solution including Event producer, consumer and persistence to Cassandra in [this repository](https://github.com/ibm-cloud-architecture/refarch-asset-analytics)
 
 ## Install Zookeeper Kafka on ICP
-There are two options: use our manifests for Kafka and zookeeper and even our zookeeper docker image, or use IBM Event Streams if you are using ICP 3.1.x.
+There are two options: use our manifests for Kafka and zookeeper and even our zookeeper docker image, or use [IBM Event Streams](https://developer.ibm.com/messaging/event-streams/) if you are using ICP 3.1.x.
+
+### Considerations
+One major requirement to address which impacts kubernetes Kafka Services configuration and Kafka Broker server configuration is the need for remote access or not: meaning do we need to have applications not deployed on Kubernetes that should push or consume message to/from topics defined in the Kafka Brokers running in pods. Normally the answer should be yes as all deployments are Hybrid cloud per nature.
+As the current client API is doing its own load balancing between brokers we will not be able to use ingress or dynamic node port allocation.
+
+Let explain by starting to review Java code to access brokers. The properties needed to access
+```java
+public static String BOOTSTRAP_SERVERS = "172.16.40.133:32224,172.16.40.137:32224,172.16.40.135:32224";
+Properties properties = new Properties();
+properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
+kafkaProducer = new KafkaProducer<>(properties);
+....
+
+```
+
+To connect to broker  their addresses and port numbers need to be specified. This information should come from external properties file, but the code above is for illustration. The problem is that once deployed in Kubernetes,  Kafka broker runs as pod so have dynamic port number if we expose a service using NodePort, and the IP address may change overtime while pod are scheduled to Node. The list broker need to be in the format: <host>:<port>, <host>:<port>,<host>:<port>. So host list, without port number will not work, forbidden the use of virtual host name defined with Ingress manifest and managed by Kubernetes ingress proxy. An external load balancer will not work too.
+Here is an example of return message when the broker list is not set right: `Connection to node -1 could not be established. Broker may not be available`.
+
+There are two options to support remote connection: implement a proxy, deployed inside the Kubernetes cluster, with 3 or 5 hostnames and port to expose the brokers, or use static NodePort. As of now for development we used NodePort:
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: gc-kafka
+  name: gc-kafka-svc
+spec:
+  type: NodePort
+  ports:
+  - name: kafka-port
+    port: 32224
+    nodePort: 32224
+    targetPort: 32224
+  selector:
+    app: gc-kafka
+```
+So we use a port number for internal and external communication. In statefulset we use a google created tool to start the kafka server and set parameters to override the default the `conf/server.properties`.
+```
+command:
+- "exec kafka-server-start.sh /opt/kafka/config/server.properties --override broker.id=${HOSTNAME##*-} \
+  --override listeners=PLAINTEXT://:32224 \
+```
+
+When consumer or producer connect to a broker in the list there are some messages exchanged, like getting the cluster ID and the endpoint to be used which corresponds to a virtual DNS name of the exposed service:
+`gc-kafka-0.gc-kafka-hl-svc.greencompute.svc.cluster.local`:
+
+```
+INFO  org.apache.kafka.clients.Metadata - Cluster ID: 4qlnD1e-S8ONpOkIOGE8mg
+INFO  o.a.k.c.c.i.AbstractCoordinator - [Consumer clientId=consumer-1, groupId=b6e69280-aa7f-47d2-95f5-f69a8f86b967] Discovered group coordinator gc-kafka-0.gc-kafka-hl-svc.greencompute.svc.cluster.local:32224 (id: 2147483647 rack: null)
+
+```
+So the code may not have this entry defined in the DNS. I used /etc/hosts to map it to K8s Proxy IP address. Also the port number return is the one specified in the server configuration, it has to be one Kubernetes and Calico set in the accepted range and exposed on each host of the cluster. With that connection can be established.
+
+
 ### Using existing manifests
 We are defining two types of manifests, one set for development environment and one for production. The manifests and scripts are under deployments folder of this project.
 
@@ -283,17 +337,21 @@ $ kubectl get pods -o wide
 ```
 
 #### Kafka
-The manifests and scripts are under `deployments/kafka`. The deployKafka configures volume, service and statefulset. To be able to
+The manifests and scripts are under `deployments/kafka`. The `deployKafka.sh` script configures volume, service and statefulset.
 
 #### Verify deployment
+We can use the tools delivered with Kafka by using the very helpful `kubectl exec` command.
+
 * Remote connect to the Kafka pod:
 ```
 kubectl exec -ti gc-Kafka-0 bash
 ```
-* Create a test-topic while connect to the Kafka broker: gc-Kafka-0
+* Create a test-topic while connected to the Kafka broker: gc-Kafka-0
 ```
 Kafka@gc-Kafka-0:/$ Kafka-topics.sh --create --replication-factor 1 --partitions 1 --topic test-topic --zookeeper gc-srv-zookeeper-svc.greencompute.svc.cluster.local:2181
 ```
+The zookeeper was exposed via a kubernetes NodePort service.
+
 * Get IP address and port number for Zookeeper
 ```
 $ kubectl describe svc gc-client-zookeeper-svc
@@ -306,7 +364,7 @@ TargetPort:               2181/TCP
 NodePort:                 client  31454/TCP
 Endpoints:                192.168.223.43:2181
 ```
-* Validate the list of topics from developer's workstation
+* Validate the list of topics from the developer's workstation using the command:
 ```
 $ kubectl exec -ti gc-Kafka-0 -- bash -c "Kafka-topics.sh --list --zookeeper gc-srv-zookeeper-svc.greencompute.svc.cluster.local:2181 "
 
@@ -314,12 +372,12 @@ or
 Kafka-topics.sh --describe --topic test-topic --zookeeper gc-srv-zookeeper-svc.greencompute.svc.cluster.local:2181
 
 ```
-* start the consumer from developer's workstation
+* start the consumer from the developer's workstation
 ```
 $ kubectl get pods | grep gc-Kafka
 $ kubectl exec gc-Kafka-0 -- bash -c "Kafka-console-consumer.sh --bootstrap-server  localhost:9093 --topic test-topic --from-beginning"
 ```
-the script `deployment/Kafka/consumetext.sh` does these command. As we run in the Kafka broker the host is localhost and the port number is the headless service one.
+the script `deployment/Kafka/consumetext.sh` executes those commands. As we run in the Kafka broker the host is localhost and the port number is the headless service one.
 
 * start a text producer
 Using the same approach we can use broker tool:
@@ -329,10 +387,10 @@ this is a message for you and this one too but this one...
 I m not sure
 EOB"
 ```
-Next steps... do pub/sub message using remote IP and port from remote server.
+Next steps... do pub/sub message using remote IP and port from remote server. The code is in [this project]().
 
 ### Install IBM Event Streams on ICP
-[See this separate article](./ibm-event.streams.md)
+[See this separate article](./ibm-event-streams.md)
 
 ### Troubleshooting
 For ICP troubleshooting see this centralized [note](https://github.com/ibm-cloud-architecture/refarch-integration/blob/master/docs/icp/troubleshooting.md)
@@ -355,8 +413,8 @@ Error when sending message to topic test-topic with key: null, value: 12 bytes w
 org.apache.Kafka.common.errors.TimeoutException: Failed to update metadata after 60000 ms.
 ```
 This can be linked to a lot of different issues, but it is a communication problem. Assess the following:
-* port number exposed
-*
+* port number exposed match the broker's one.
+* host name known by the server running the producer or consumer code.
 
 ## Streaming app
 The Java code in the project: https://github.com/ibm-cloud-architecture/refarch-asset-analytics/tree/master/asset-event-producer includes examples of stateless consumers, a text producer, and some example of stateful operations. In general code for processing event does the following:

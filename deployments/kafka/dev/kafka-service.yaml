@@ -8,10 +8,13 @@ spec:
   type: NodePort
   ports:
   - name: kafka-port
-    port: 9092
-    targetPort: 9092
+    port: 32224
+    nodePort: 32224
+    targetPort: 32224
   selector:
-    app: kafka
+    app: gc-kafka
+
+# headless service to create dns record: gc-kafka-0.gc-kafka-hl-svc.greencompute.svc.cluster.local
 ---
 apiVersion: v1
 kind: Service
@@ -21,8 +24,8 @@ metadata:
     app: gc-kafka
 spec:
   ports:
-  - port: 9093
+  - port: 32224
     name: server
   clusterIP: None
   selector:
-    app: kafka
+    app: gc-kafka

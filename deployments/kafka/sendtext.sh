@@ -14,7 +14,7 @@ echo "Get port exposed node port number for kafka broker"
 # portN=$(kubectl describe svc gc-kafka-hl-svc | grep "Port:" | awk '{print $3}' | cut -d '/' -f1)
 echo $portN
 echo "Send some text"
-kubectl exec $POD -- bash -c "/opt/kafka/bin/kafka-console-producer.sh --broker-list localhost:9093 --topic test-topic << EOB
+kubectl exec $POD -- bash -c "/opt/kafka/bin/kafka-console-producer.sh --broker-list localhost:32224 --topic test-topic << EOB
 this is a message for you and this one too but this one...
 I m not sure
 EOB"

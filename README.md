@@ -11,9 +11,11 @@ To get explanation of the components involved in this architecture see [Architec
 # Table of Contents
 * [Data Sciences quick introduction](#data-sciences)
 * [Solution overview](#solution-overview)
-* [Repositories of the solution](#repositories)
+* [ICP for data](./docs/icp4data/readme.md)
+* [Real time analytics with IBM Event Stream or Kafka](./docs/kafka/readme.md)
+* [Repositories for the different solutions](#repositories)
 * [Build and Run](#build-and-run)
-* [DevOps](#devops) with [deployment](#deployment)
+* [DevOps](#devops) with [deployment](#deployments)
 * [Service management](#service-management)
 * [Compendium](#compendium)
 * [Contribute](#contribute)
@@ -50,6 +52,9 @@ There are a set of standard challenges while developing an IT solution which int
 ## Methodology
 Combining the development of analytics, machine learning and traditional software development involves adapting the agile iterative methodology. At IBM we are using the Design thinking and lean approach for developing innovative business applications. The [garage method](https://www.ibm.com/cloud/garage/) explains this approach. To support AI and analytics the method needs to be extended, focusing on data and data sciences. In [this article](./docs/methodology.md) we cover the specifics activities for analytics.
 
+## Algorithm selection
+In the application from [https://samrose3.github.io/algorithm-explorer](https://samrose3.github.io/algorithm-explorer/) you can assess what algorithm to use to address a specific problem.
+
 # Solution Overview
 The solution needs to cover the following capabilities:
 * Develop model with Data Science eXperience using static data loaded in DSX or in DB2 Warehouse
@@ -68,31 +73,40 @@ The system context may look like the following figure:
 The proposed allocation of the components of this system context is still open, but we want to represent hybrid deployment and using IBM Cloud private to leverage cloud development practices for any new micro services and web application deployment.
 
 # Repositories
-The following repositories are part of the solution
-* [Customer management micro service](https://github.com/ibm-cloud-architecture/refarch-integration-services) is a java based micro service to expose operations on the customer, account and purchase order resources. Packaged as docker image with Liberty server, it can be deployed on ICP. In the system context above the customer database and a data access service in front of the database.
+The following repositories are part of the reference architecture implementation
 * [Cognitive and analytics customer churn assessment](https://github.com/ibm-cloud-architecture/refarch-cognitive-analytics) using structured and unstructured data build a business application linking cognitive and analytics to learn customer's behavior and assess customer risk to churn while he/she interacts with your web site.
+* [Predictive maintenance for IoT devices with analytics, real time streaming, microservices and cassandra](https://github.com/ibm-cloud-architecture/refarch-asset-analytics). This set of projects presents an end to end solution to enable predictive maintenance capabilities on manufacturing assets. The solution uses Apache Kafka, Cassandra, SpringBoot, Angular 6, ICP for Data, Data Science Experience.
 * [Integration tests](https://github.com/ibm-cloud-architecture/refarch-integration-tests) is a project to manage the different integration tests. In this project there are tests to validate the backend services of this solution under the src/test/java project, junit test under the package `dashdb.icp.tests`.
 * [Deploy mongoDB on ICP](https://github.com/ibm-cloud-architecture/refarch-icp-mongodb).
+* [Do real time streaming analytics with Apache Kafka](docs/kafka/readme.md)
 
 # Build and run
 ## For Data Sciences
 * [Notebook explanations](notebooks/README.md)
 
 ## For customer manager
-The user interface is packaged as part of the [Case Portal application](https://github.com/ibm-cloud-architecture/refarch-caseinc-app) and we [documented](docs/UI/README.md) how add the specifics customer management UI inside the portal. The backend component is a micro-service developed with JAXRS, packaged with Liberty server as a docker image.
+The user interface is packaged as part of the [Case Portal application](https://github.com/ibm-cloud-architecture/refarch-case-portal-app) and we [documented](docs/UI/README.md) how to add the specifics customer management UI inside the portal. The backend component is a micro-service developed with JAXRS, packaged with Liberty server as a docker image.
+
+## For Db2 Warehouse data ingestion
+To install DB2 warehouse on IBM Cloud Private read [this article](./docs/db2warehouse/README.md).
+For moving data from DB2 running on-premise to DB2 warehouse on ICP there are different approaches, we documented [one approach](docs/db2warehouse/CopyingData.md) based on dB2 warehouse out of the box capabilities.
+
+## For taxi scenario
+[The Taxi forecast scenario](./docs/taxi_scenario/README.md) is based on public data on New York city taxi usage and illustrates on how a Data Scientist responds to a manager demand with a quick around time for data analysis using IBM Data management and jupyter notebooks.
 
 # DevOps
 ## Continuous integration
-## Deployment
+## Deployments
 * [Deploy Data Science eXperience (DSX) to IBM Cloud Private](docs/ICP/README.md)
 * [Deploy Db2 Warehouse to IBM Cloud Private](docs/db2warehouse/README.md)
-
-## Continuous testing
-
+* [Deploy Kafka on ICP](https://github.com/ibm-cloud-architecture/refarch-analytics/blob/master/docs/kafka/readme.md#on-macos-with-docker-edge-and-kubernetes)
+* [Deploy IBM Event Stream (Based on Kafka) on ICP](https://github.com/ibm-cloud-architecture/refarch-analytics/blob/master/docs/kafka/readme.md#install-on-icp)
+* [Deploy Cassandra on ICP](https://github.com/ibm-cloud-architecture/refarch-asset-analytics/blob/master/docs/cassandra/readme.md#deployment-on-icp)
 # Service management  
+* [DB2 backup and restore in the context of ICP deployment](docs/db2warehouse/README.md#backing-up-databases)
 
 # Compendium
-* [IBM Analytics reference architecture](https://www.ibm.com/cloud/garage/content/architecture/dataAnalyticsArchitecture/dataAnalyticsCustomerExperience)
+* [IBM Analytics reference architecture](https://www.ibm.com/cloud/garage/content/architecture/dataAnalyticsArchitecture)
 * [Data Science Experience public page](https://datascience.ibm.com/)
 * [IBM Cloud Private](https://www.ibm.com/cloud-computing/products/ibm-cloud-private/)
 * [Developer works on Analytics](https://www.ibm.com/developerworks/learn/analytics/)
@@ -113,3 +127,12 @@ We really value contributions and to maximize the impact of code contributions w
 If you want to contribute, start by using git fork on this repository and then clone your own repository to your local workstation for development purpose. Add the up-stream repository to keep synchronized with the master.
 
 Please [contact me](boyerje@us.ibm.com) for any questions.
+
+*Authors:*
+* Jerome Boyer - IBM
+* Rob Wilson - IBM
+* Sunil Dube - IBM
+* Sandra Tucker - IBM
+* Amaresh Rajasekharan - IBM
+* Zach Silverstein - IBM
+* John Marting - IBM

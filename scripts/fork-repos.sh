@@ -2,7 +2,7 @@
 
 usage() {
     echo "\nUsage: sh fork-repos.sh -o git-org-name -u git-userid -p git-password"
-    echo "This script will fork refarch-integrtion project github repositories from github.com/ibm-cloud-architecture to your git organization"
+    echo "This script will fork refarch-integration project github repositories from github.com/ibm-cloud-architecture to your git organization"
 }
 
 which curl >/dev/null || { echo "Could not find curl on this machine. Install curl and try again.";exit 1; }

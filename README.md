@@ -24,7 +24,7 @@ To get explanation of the components involved in this architecture see [Architec
 
 # Data Sciences Introduction
 
-The goals for data science is to infer from data actionable insights for the business execution improvement. The main stakeholders are business users, upper managers, who want to get improvement to some important metrics and indicators to control their business goals and objectives. Data scientists have to work closely with business users and be able to explain and represent findings clearly and with good visualization, pertinent for the business users.
+The goals for data science is to infer from data, actionable insights for the business execution improvement. The main stakeholders are business users, upper managers, who want to get improvement to some important metrics and indicators to control their business goals and objectives. Data scientists have to work closely with business users and be able to explain and represent findings clearly and with good visualization, pertinent for the business users.
 
 Data science falls into these three categories:
 
@@ -123,9 +123,11 @@ For moving data from DB2 running on-premise to DB2 warehouse on ICP there are di
 * [Deploy Cassandra on ICP](https://github.com/ibm-cloud-architecture/refarch-asset-analytics/blob/master/docs/cassandra/readme.md#deployment-on-icp)
 
 # Service management  
+
 * [DB2 backup and restore in the context of ICP deployment](docs/db2warehouse/README.md#backing-up-databases)
 
 # Compendium
+
 * [IBM Analytics reference architecture](https://www.ibm.com/cloud/garage/content/architecture/dataAnalyticsArchitecture)
 * [Data Science Experience public page](https://datascience.ibm.com/)
 * [IBM Cloud Private](https://www.ibm.com/cloud-computing/products/ibm-cloud-private/)
@@ -133,6 +135,7 @@ For moving data from DB2 running on-premise to DB2 warehouse on ICP there are di
 * Integrate with swagger https://github.com/WASdev/sample.swagger
 
 # Contribute
+
 We welcome your contribution. There are multiple ways to contribute: report bugs and improvement suggestion, improve documentation and contribute code.
 We really value contributions and to maximize the impact of code contributions we request that any contributions follow these guidelines
 * Please ensure you follow the coding standard and code formatting used throughout the existing code base

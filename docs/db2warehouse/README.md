@@ -117,14 +117,62 @@ db2-ibm-db2warehouse-prod-3772094781-3z4m3   1/1       Running   0          35m
 $ kubectl describe pod db2-ibm-db2warehouse-prod-3772094781-3z4m3 --namespace db2-warehouse
 ```
 
-As of now 12/2017 the logs in ICP do not have information on DB2 state, so to access the db2 logs we need to connect to the pod:
+Deployment logs can be followed: 
 ```
-# kubectl exec -it <pod name> bash
-$ kubectl exec -it db2-ibm-db2warehouse-prod-3772094781-3z4m3 bash --namespace db2-warehouse
-$ tail -f /var/log/dashdb_local.log
+kubectl logs -f --namespace db2-warehouse db2-ibm-db2warehouse-prod-3772094781-3z4m3
+systemd 219 running in system mode. (+PAM +AUDIT +SELINUX +IMA -APPARMOR +SMACK +SYSVINIT +UTMP +LIBCRYPTSETUP +GCRYPT +GNUTLS +ACL +XZ -LZ4 -SECCOMP +BLKID +ELFUTILS +KMOD +IDN)
+Detected virtualization docker.
+Detected architecture x86-64.
+
+Welcome to Db2 Warehouse!
+
+...
+[430078.216932] start_dashDB_local.sh[153]: #######################################################################
+[430078.223884] start_dashDB_local.sh[153]: ##      --- IBM Db2 Warehouse stack service status summary ---       ##
+[430078.228532] start_dashDB_local.sh[153]: #######################################################################
+[430082.314823] start_dashDB_local.sh[153]: Redirecting to /bin/systemctl status slapd.service
+[430082.315327] start_dashDB_local.sh[153]: SUMMARY
+[430082.315675] start_dashDB_local.sh[153]: Db2TablesOnline               : RUNNING
+[430082.316073] start_dashDB_local.sh[153]: Db2connectivity               : RUNNING
+[430082.316387] start_dashDB_local.sh[153]: Db2running                    : RUNNING
+[430082.316676] start_dashDB_local.sh[153]: LDAPrunning                   : RUNNING
+[430082.316995] start_dashDB_local.sh[153]: WebConsole                    : RUNNING
+[430082.321714] start_dashDB_local.sh[153]: ********************************************************************************
+[430082.326804] start_dashDB_local.sh[153]: ******                          Congratulations!                          ******
+[430082.332275] start_dashDB_local.sh[153]: ******     You have successfully deployed IBM Db2 Warehouse      ******
+[430082.338923] start_dashDB_local.sh[153]: ********************************************************************************
 ```
 
-If you need to assess id DB2 is running use: `ps -ef | grep db2sysc` inside the pod.
+You can get a status of the deployment by using the `status` command:
+```
+# kubectl exec -it --namespace db2-warehouse db2-ibm-db2warehouse-prod-3772094781-3z4m3 status
+Getting IBM Db2 Warehouse status...
+
+-- IBM Db2 Warehouse Services Status --
+
+
+SUMMARY
+
+Db2TablesOnline               : RUNNING
+Db2connectivity               : RUNNING
+Db2running                    : RUNNING
+LDAPrunning                   : RUNNING
+WebConsole                    : RUNNING
+Spark                         : ENABLED
+LDAPsearch                    : SUCCESS
+
+Important:
+* If you configured authentication by using an external LDAP server,
+  the 'LDAPrunning' status in the output should be STOPPED.
+* If the 'LDAPsearch' status in the output is SUCCESS, IBM Db2 Warehouse
+  can access the LDAP server.
+
+**************** IBM Db2 Warehouse license information ****************
+ * License type             : Unwarranted
+ * License expiry date      : Permanent
+ * License status           : Active
+***********************************************************************
+```
 
 
 ## Loading customer sample data
@@ -186,6 +234,32 @@ This will result in output similar to:
 
 ```
 DB2_SYSGEN_db2inst1_BLUDB_2018-01-18-18.06.37_99807F2D
+```
+
+Alternatively you can use db2pd (Note our pod has changed for this example):  
+```
+$ db2pd -enc -db bludb
+
+Database Member 0 -- Database BLUDB -- Active -- Up 1 days 20:35:18 -- Date 2018-09-06-15.09.06.501086
+
+Encryption Info:
+   Object Name:               BLUDB
+   Object Type:               DATABASE
+   Encyrption Key Info:
+          Encryption Algorithm: AES
+     Encryption Algorithm Mode: CBC
+         Encryption Key Length: 256
+              Master Key Label: DB2_SYSGEN_db2inst1_BLUDB_2018-09-04-18.36.28_25D431F6
+ Master Key Rotation Timestamp: 2018-09-04-18.36.28.000000
+   Master Key Rotation Appl ID: *LOCAL.db2inst1.180904183628
+   Master Key Rotation Auth ID: DB2INST1
+     Previous Master Key Label: DB2_SYSGEN_db2inst1_BLUDB_2018-09-04-18.22.11_5F5306F6
+   KeyStore Info:
+                 KeyStore Type: PKCS12
+             KeyStore Location: /mnt/blumeta0/db2/keystore/keystore.p12
+            KeyStore Host Name: greendb2-ibm-db2warehouse-dev-7bdf96dc8c-lp87c
+           KeyStore IP Address: 192.168.130.76
+      KeyStore IP Address Type: IPV4
 ```
 
 That is your key label and is used to export the appropriate item from the keystore using the full path to the binaries so the proper gskit libraries are referenced:

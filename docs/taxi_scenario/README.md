@@ -1,6 +1,6 @@
 # Use Case: Short-term Data Analysis
 
-Monday morning, 9:00am the boss is coming and ask: *Why was taxi ridership so low last quarter?*
+Monday morning the boss comes in and asks: *Why were ads in taxis performing so poorly?*
 
 Alice is a DBA at a company that places advertisements in taxis. They noticed lower success last quarter and are reconsidering their placements. Alice has been asked to look at what could explain this downturn and what actions can be taken.
 
@@ -14,9 +14,9 @@ It's likely Alice also looked at which concert venues were referenced on social 
 
 ## Copying the Data
 
-We'll be using a local copy of the data for this analysis. This allows us to perform simple transforms to better fit our intended usage. It also means our activity is not affecting production in any way once the data has been copied. Since our remote data source is one supported by remote tables (also known as Federation). This is a feature provided by a product called IBM Data Server Manager that provides the main interface to Db2 Warehouse in ICP. There is a [video for this process](https://www.ibm.com/developerworks/community/blogs/bed0acad-d142-4bd6-84b5-c136c4673ddc/entry/Accessing_Remote_Tables_with_DB2_and_DSM_to_create_a_Virtual_Warehouse?lang=en).
+We'll be using a local copy of the data for this analysis. This allows us to perform simple transforms to better fit our intended usage. It also means our activity is not affecting production in any way once the data has been copied. We will use a feature provided by a product called IBM Data Server Manager (DSM) called Remote Tables. DSM provides the main interface to Db2 Warehouse in ICP. There is a [video for this process](https://www.ibm.com/developerworks/community/blogs/bed0acad-d142-4bd6-84b5-c136c4673ddc/entry/Accessing_Remote_Tables_with_DB2_and_DSM_to_create_a_Virtual_Warehouse?lang=en).
 
-Our first step is to create a connection to the remote data from within the Db2 Warehouse dashboard. Select the Remote Tables menu item to arrive at a screen like this:
+Our first step is to create a connection to the remote data source from within the Db2 Warehouse dashboard. Select the Remote Tables menu item to arrive at a screen like this:
 
 ![](1_remote_tables.png)
 
@@ -40,19 +40,19 @@ Closing some of the tabs by clicking the X next to "Create Server" and "Manage S
 
 ![](5_create_nickname.png)
 
-Click "Add Nicknames" to bring up a list of tables on the remote server. They can be filtered to more esily find tables of interest. At the bottom of the page in the screenshot above is a link to show the script.
+Click "Add Nicknames" to bring up a list of tables on the remote server. They can be filtered to more esily find tables of interest. At the bottom of the page in the screenshot above is a link to show the script, which can be helpful if many remote tables requiring different filters are needed.
 
 ![](6_create_nickname2.png)
 
-I am pulling both the weather data and the taxi rides from my remote data source. The weather data being used is small enough that it could be uploaded through the "Load Data" menu if you prefer.
+I am pulling the taxi ride data from my remote data source. The weather data being used is small enough that it could be uploaded through the "Load Data" menu. Upload speed is limited by the bandwidth between the client providing the file and ICP which in my case is lower than the bandwidth between my remote server and ICP.
 
 Running the script results in the nicknames being created.
 
 ## Using the Remote Tables
 
-Now that you have defined the tables you are able to use them just like regular tables. These tables can be joined with other tables in your database, updated, inserted into, etc. Every time you use them there is a connection (which gets reused a number of times) to the remote data source. Any translations into the remote dialect will happen automatically. There is effort made to minimize the amount of data requested from the remote source - filtering, choosing particular columns, and grouping can be "pushed down" and happen there rather than return the intermediate results to perform those actions locally.
+Now that you have defined the tables you are able to use them just like regular tables. These tables can be joined with other tables in your database, updated, inserted into, etc (permissions on the remote server still apply). Every time you use them there is a connection (which gets reused a number of times) to the remote data source. Any translations into the remote dialect will happen automatically. There is effort made to minimize the amount of data requested from the remote source - filtering, choosing particular columns, and grouping can be "pushed down" and happen there rather than return the intermediate results to perform those actions locally.
 
-The remote data has a row for every ride. Our analysis is just going to look at a daily rollup so we can add a ride_date column. I used the `CREATE TABLE ... AS` synta to create a new table as the results of a query, copying no data into it yet:
+The remote data has a row for every ride. Our analysis is just going to look at a daily rollup so we can add a ride_date column. I used the `CREATE TABLE ... AS` syntax to create a new table as the results of a query, copying no data into it yet:
 
 ![](7_cr_local_table.png)
 
@@ -78,7 +78,7 @@ While the load operation is running it can be monitored as an Application on the
 
 ![](8_monitor_load.png)
 
-Now you have a copy of the data in a local table called BLUADMIN.NYCTAXI_DATA.
+Now you have a copy of the data in a local table called BLUADMIN.NYCTAXI_DATA2.
 
 ## Loading From a File
 
@@ -106,20 +106,24 @@ This load should run relatively quickly and present a load summary showing that 
 
 ## Making a Daily Precipitation Table
 
-Earlier we summarized taxi data by day so will do the same with our precipitation. The steps are similar. First we'll create the summary table using the query that will populate it later:
+Earlier we summarized taxi data by day so we will do the same with our precipitation. The steps are similar. First we'll create the summary table using the query that will populate it later:
 
 ![](14_cr_daily_precip.png)
 
 Then, because this is a faster query resulting in at most 366 rows we will simply populate the table by running it:
 ```
+CREATE TABLE BLUADMIN.RAIN_DAILY AS (
 SELECT STATION, date(substr(READING_TIME, 1, locate(' ', READING_TIME))) as reading_date, sum(PRECIP) as precip
   FROM BLUADMIN.RAIN_HOURLY
-  group by station, date(substr(READING_TIME, 1, locate(' ', READING_TIME)));
+  group by station, date(substr(READING_TIME, 1, locate(' ', READING_TIME)))
+) WITH DATA;
 ```
+
+(Notice that previous we used `WITH NO DATA` which creates the table structure. This time we told it to also populate the table.
 
 # Use the Data Science Experience to Visualize Data
 
-Alice has some SQL skills and a lot of DBA skills but no data science background. Following tutorials and Internet searches she is able to get her notebook to connect to the new data set, load the data, and generate simple graphs. Based on her initial analysis she is able to show that ridership changes with the amount of rainfall. Since there was lower than usual rainfall last quarter it makes sense that ridership would be low. She presents her findings to management who then decide to add weather data into their predictive modeling for future pricing and exposure predictions.
+Alice has some SQL skills and a lot of DBA skills but not much of a data science background. Following tutorials and Internet searches she is able to get her notebook to connect to the new data set, load the data, and generate simple graphs. Based on her initial analysis she is able to show that ridership changes with the amount of rainfall. Since there was lower than usual rainfall last quarter it makes sense that ridership would be low. She presents her findings to management who then decide to add weather data into their predictive modeling for future pricing and exposure predictions.
 
 ## Connect to the Database
 
@@ -160,7 +164,9 @@ df = pd.DataFrame(cursor.fetchall(), columns=columns)
 df.tail()
 ```
 
-The last line will print the last few rows of data so you can confirm the amount is as expected. The query populates one quarter of taxi rides and rainfall data.
+The last line will print the last few rows of data so you can confirm the amount is as expected. The query populates one quarter (three months) of taxi rides and rainfall data.
+
+![](15_dataframe_dump.png)
 
 ## Graph the Data
 
@@ -187,6 +193,8 @@ ax2.set_ylabel("Rides")
 #ax3 = df.TOTAL_MINUTES.plot(x="RIDE_DATE", style="g-", secondary_y=True)
 #ax3.set_ylabel("Minutes")
 ```
+
+![](16_ride_precip_graph.png)
 
 
 ## Contributors
